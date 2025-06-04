@@ -35,7 +35,7 @@ describe('YUL', async () => {
       });
 
 
-      expect(result).equal(ethers.zeroPadValue('0x45544f4b454e', 32));
+      expect(result).equal(ethers.zeroPadValue(hexEncoder('ETOKEN'), 32));
     });
 
     it('Should return symbol', async () => {
@@ -47,7 +47,9 @@ describe('YUL', async () => {
         data,
       });
 
-      expect(result).equal(ethers.zeroPadValue('0x4554', 32));
+
+      expect(result).equal(ethers.zeroPadValue(hexEncoder('ET'), 32));
+      console.log(hexEncoder('Invalid values'))
     });
   });
 });

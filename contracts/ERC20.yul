@@ -4,6 +4,7 @@ object "ERC20" {
     sstore(0x06fdde03, 0x45544f4b454e)
     sstore(0x95d89b41, 0x4554)
     sstore(0x313ce567, 0x12)
+    sstore(0xa035b1fe, 0xf4240)
 
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
@@ -23,27 +24,74 @@ object "ERC20" {
       switch selector
 
       case 0x18160ddd /* totalSupply() */ {
-        let totalSupply := sload(0x18160ddd)
-        mstore(0x00, totalSupply)
-        return(0x00, 0x20)
+        returnStorageData(0x18160ddd)
       }
       case 0x06fdde03 /* name() */ {
-        let name := sload(0x06fdde03)
-        mstore(0x00, name)
-        return(0x00, 0x20)
+        returnStorageData(0x06fdde03)
       }
       case 0x95d89b41 /* symbol() */ {
-        let symbol := sload(0x95d89b41)
-        mstore(0x00, symbol)
-        return(0x00, 0x20)
+        returnStorageData(0x95d89b41)
       } 
-      case 0x313ce567 /* decimals */ {
-        let decimals := sload(0x313ce567)
-        mstore(0x00, decimals)
-        return(0x00, 0x20)
+      case 0x313ce567 /* decimals() */ {
+        returnStorageData(0x313ce567)
+      }
+      case 0xa035b1fe /* price() */ {
+        returnStorageData(0xa035b1fe)
       }
       default {
         revert(0, 0)
+      }
+
+      /* FUNCTION */
+      function mint() {
+        let from := caller()
+        let amount := callvalue()
+
+        if iszero(amount) {
+          revertError(INVALID_VALUES_ERROR())
+        }
+
+        let price := returnStorageData(0xa035b1fe)
+        let tokenBalance
+
+
+      } 
+
+      /* PARAMETER MANAGERMENT*/
+      function addressParam(offset) -> v {
+        v := uintParam(offset)
+        if iszero(iszero(and(v , not(0xffffffffffffffffffffffffffffffffffffffff)))) {
+          revertError(INVALID_PARAMS_ERROR())
+        }
+      }
+
+      function uintParam(offset) -> v {
+        let pos := add(4, mul(offset, 0x20))
+        if lt(calldatasize(), add(pos, 0x20)) {
+          revertError(INVALID_PARAMS_ERROR())
+        }
+        v := calldataload(pos)
+      }
+
+      /* RETURN STORAGE DATA */
+      function returnStorageData(pos) {
+        let storageData := sload(pos)
+        mstore(0x00, storageData)
+        return(0x00, 0x20)
+      }
+
+      function revertError(message) {
+        mstore(0x00, message)
+        revert(0x00, 0x20)
+      }
+
+      /* ERROR */
+      function INVALID_PARAMS_ERROR() -> e {
+        e := 0x496e76616c696420706172616d73
+      }
+
+      function INVALID_VALUES_ERROR() -> e {
+        e := 0x496e76616c69642076616c756573
       }
     }
 	}
