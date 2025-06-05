@@ -14,45 +14,43 @@ describe('YUL', async () => {
 
   describe('Initial Value', async () => {
     it('Should return total supply', async () => {
-      const iface = new ethers.Interface(["function totalSupply()"]);
-      const data = iface.encodeFunctionData('totalSupply', []);
-
-      const result = await ethers.provider.call({
-        to: contractAddress,
-        data,
-      });
+      const result = await providerCall('totalSupply', []);
 
       expect(Number(result)).equal(0);
     });
 
     it('Should return name', async () => {
-      const iface = new ethers.Interface(["function name()"]);
-      const data = iface.encodeFunctionData('name', []);
-
-      const result = await ethers.provider.call({
-        to: contractAddress,
-        data,
-      });
-
+      const result = await providerCall('name', []);
 
       expect(result).equal(ethers.zeroPadValue(hexEncoder('ETOKEN'), 32));
     });
 
     it('Should return symbol', async () => {
-      const iface = new ethers.Interface(["function symbol()"]);
-      const data = iface.encodeFunctionData('symbol', []);
-
-      const result = await ethers.provider.call({
-        to: contractAddress,
-        data,
-      });
-
+      const result = await providerCall('symbol', []);
 
       expect(result).equal(ethers.zeroPadValue(hexEncoder('ET'), 32));
-      console.log(hexEncoder('Invalid values'))
+    });
+
+    it('Should return price', async () => {
+      const result = await providerCall('price', []);
+
+      expect(Number(result)).equal(10e5);
     });
   });
 });
+
+const providerCall = async (name: string, params?: any[]): Promise<string> => {
+  const data = dataEncoder(name, params);
+  return await ethers.provider.call({
+    to: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    data,
+  });
+}
+
+const dataEncoder = (name: string, params?: any[]): string => {
+  const iface = new ethers.Interface([`function ${name}()`]);
+  return iface.encodeFunctionData(name, params);
+}
 
 const hexEncoder = (string: string) => {
   return hexlify(toUtf8Bytes(string));

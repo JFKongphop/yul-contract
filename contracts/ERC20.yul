@@ -38,12 +38,7 @@ object "ERC20" {
       case 0xa035b1fe /* price() */ {
         returnStorageData(0xa035b1fe)
       }
-      default {
-        revert(0, 0)
-      }
-
-      /* FUNCTION */
-      function mint() {
+      case 0x1249c58b /* mint() */ {
         let from := caller()
         let amount := callvalue()
 
@@ -51,11 +46,51 @@ object "ERC20" {
           revertError(INVALID_VALUES_ERROR())
         }
 
-        let price := returnStorageData(0xa035b1fe)
-        let tokenBalance
+        let price := getStorageData(0xa035b1fe)
+        let overValue := mod(amount, price)
+        let tokenAmount := div(sub(amount, overValue), price)
+
+        mstore(0x00, from)
+        mstore(0x20, BALANCE_OF_MAPPING)
+        let slot := keccak256(0x00, 0x40)
+        sstore(slot, tokenAmount)
+
+        let totalSupply := getStorageData(0x18160ddd)
+        sstore(0x18160ddd, add(totalSupply, tokenAmount))
+
+        mstore(0x00, tokenAmount)
+        log3(0x00, 0x20, TRANSFER_EVENT, from, address())
+      }
+
+      default {
+        revert(0, 0)
+      }
+
+      /* FUNCTION */
+      // function mint() {
+      //   let from := caller()
+      //   let amount := callvalue()
+
+      //   if iszero(amount) {
+      //     revertError(INVALID_VALUES_ERROR())
+      //   }
+
+      //   let price := getStorageData(0xa035b1fe)
+      //   let overValue := mod(amount, price)
+      //   let tokenAmount := div(sub(amount, overValue), price)
+
+      //   mstore(0x00, from)
+      //   mstore(0x20, USER_BALANCE_MAPPING)
+      //   let slot := keccak256(0x00, 0x40)
+      //   sstore(slot, tokenAmount)
+
+      //   let totalSupply := getStorageData(0x18160ddd)
+      //   sstore(0x00, add(totalSupply, tokenAmount))
 
 
-      } 
+      //   mstore(0x00, tokenAmount)
+      //   log3(0x00, 0x20, TRANSFER_EVENT, from, address())
+      // } 
 
       /* PARAMETER MANAGERMENT*/
       function addressParam(offset) -> v {
@@ -78,6 +113,10 @@ object "ERC20" {
         let storageData := sload(pos)
         mstore(0x00, storageData)
         return(0x00, 0x20)
+      }
+
+      function getStorageData(pos) -> v {
+        v := sload(pos)
       }
 
       function revertError(message) {
