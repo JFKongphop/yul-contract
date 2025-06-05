@@ -59,7 +59,7 @@ object "ERC20" {
         sstore(0x18160ddd, add(totalSupply, tokenAmount))
 
         mstore(0x00, tokenAmount)
-        log3(0x00, 0x20, TRANSFER_EVENT, from, address())
+        log3(0x00, 0x20, TRANSFER_EVENT, 0, from)
       }
 
       default {
