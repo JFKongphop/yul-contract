@@ -72,6 +72,12 @@ describe('YUL', async () => {
       expect(fromAddress).equal(zeroPadValue('0x'));
       expect(toAddress).equal(zeroPadValue(user1.address))
 
+      const contractBalance = await ethers.provider.getBalance(contractAddress);
+      console.log(contractBalance)
+
+      expect(contractBalance).equal(mintValue);
+
+\
     });
   });
 });

@@ -62,35 +62,21 @@ object "ERC20" {
         log3(0x00, 0x20, TRANSFER_EVENT, 0, from)
       }
 
+      case 0x70a08231 /* balanceOf(address) */ {
+        let userAddress := calldataload(4)
+        mstore(0x00, userAddress)
+        mstore(0x20, BALANCE_OF_MAPPING)
+        
+        let slot := keccak256(0x00, 0x40)
+        let userTokenBalance := sload(slot)
+
+        mstore(0x00, userTokenBalance)
+        return(0x0, 0x20)
+      }
+
       default {
         revert(0, 0)
       }
-
-      /* FUNCTION */
-      // function mint() {
-      //   let from := caller()
-      //   let amount := callvalue()
-
-      //   if iszero(amount) {
-      //     revertError(INVALID_VALUES_ERROR())
-      //   }
-
-      //   let price := getStorageData(0xa035b1fe)
-      //   let overValue := mod(amount, price)
-      //   let tokenAmount := div(sub(amount, overValue), price)
-
-      //   mstore(0x00, from)
-      //   mstore(0x20, USER_BALANCE_MAPPING)
-      //   let slot := keccak256(0x00, 0x40)
-      //   sstore(slot, tokenAmount)
-
-      //   let totalSupply := getStorageData(0x18160ddd)
-      //   sstore(0x00, add(totalSupply, tokenAmount))
-
-
-      //   mstore(0x00, tokenAmount)
-      //   log3(0x00, 0x20, TRANSFER_EVENT, from, address())
-      // } 
 
       /* PARAMETER MANAGERMENT*/
       function addressParam(offset) -> v {
