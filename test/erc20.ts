@@ -3,6 +3,8 @@ import { ethers } from 'hardhat';
 import { hexlify, keccak256, toUtf8Bytes } from 'ethers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC20/ERC20.bytecode.json';
+import { hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
+import { providerCall, signerCall } from './utils/call';
 
 describe('YUL', async () => {
   let contractAddress: string;
@@ -43,7 +45,7 @@ describe('YUL', async () => {
   });
 
   describe('Mint', async () => {
-    it('Should return mint data', async () => {
+    it('Should return mint data from user1', async () => {
       const mintValue = ethers.parseEther('0.01');
       await signerCall(user1, 'mint', [], mintValue);
 
@@ -72,71 +74,6 @@ describe('YUL', async () => {
       expect(Number(totalSupply)).equal(expectTotalSupply);
       expect(contractBalance).equal(mintValue);
       expect(Number(balanceOf)).equal(expectTotalSupply);
-
-      console.log(hexEncoder('Invalid Balance'))
     });
   });
 });
-
-const signerCall = async (
-  user: SignerWithAddress, 
-  name: string, 
-  params?: any[],
-  value?: bigint
-): Promise<string> => {
-  const data = dataEncoder(name, params);
-  try {
-    const tx = await user.sendTransaction({
-      to: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-      data,
-      value,
-    });
-    await tx.wait();
-
-    return 'Success';
-  } catch (e: any) {
-    return hexDecoder(e.data)
-  }
-}
-
-const providerCall = async (name: string, params?: any[]): Promise<string> => {
-  const data = dataEncoder(name, params);
-  return await ethers.provider.call({
-    to: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-    data,
-  });
-}
-
-const dataEncoder = (name: string, args?: any[]): string => {
-  let params: string[] = [];
-  if (args?.length) {
-    for (const arg of args) {
-      if (ethers.isAddress(arg)) params.push('address');
-      else params.push('uint');
-    }
-  }
-  const joinParams = params.join(',');
-  const iface = new ethers.Interface([`function ${name}(${joinParams})`]);
-  return iface.encodeFunctionData(name, args);
-}
-
-const hexEncoder = (string: string) => {
-  return hexlify(toUtf8Bytes(string));
-}
-
-const hexDecoder = (hex: string) => {
-  const biCharArrays = hex.match(/.{1,2}/g)!;
-  const zeroCleaner = biCharArrays.filter((byte) => byte != '00');
-  const base16Arrays = zeroCleaner.map((byte) => parseInt(byte, 16));
-
-  const bytes = new Uint8Array(base16Arrays);
-  return (new TextDecoder("utf-8").decode(bytes)).replace(/\n/g, '');
-};
-
-const keccakEncoder = (name: string): string => {
-  return keccak256(toUtf8Bytes(name));
-}
-
-const zeroPadValue = (value: string): string => {
-  return ethers.zeroPadValue(value, 32);
-}
