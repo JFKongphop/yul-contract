@@ -4,7 +4,7 @@ import { hexlify, keccak256, toUtf8Bytes } from 'ethers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC20/ERC20.bytecode.json';
 import { hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
-import { providerCall, signerCall } from './utils/call';
+import { getLogs, providerCall, signerCall } from './utils/call';
 
 describe('YUL', async () => {
   let contractAddress: string;
@@ -50,17 +50,12 @@ describe('YUL', async () => {
       await signerCall(user1, 'mint', [], mintValue);
 
       const price = await providerCall('price', []);
-      const expectTotalSupply = Number(mintValue) / Number(price);
+      const expectMintAmount = Number(mintValue) / Number(price);
       
       const totalSupply = await providerCall('totalSupply', []);
 
       const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
-      const logs = await ethers.provider.getLogs({
-        fromBlock: 0, 
-        toBlock: "latest",
-        address: contractAddress,
-        topics: [transferEvent]
-      });
+      const logs = await getLogs(transferEvent);
 
       const {data, topics} = logs[0];
       const [_, fromAddress, toAddress] = topics;
@@ -71,9 +66,39 @@ describe('YUL', async () => {
       expect(data).equal(totalSupply);
       expect(fromAddress).equal(zeroPadValue('0x'));
       expect(toAddress).equal(zeroPadValue(user1.address));
-      expect(Number(totalSupply)).equal(expectTotalSupply);
+      expect(Number(totalSupply)).equal(expectMintAmount);
       expect(contractBalance).equal(mintValue);
-      expect(Number(balanceOf)).equal(expectTotalSupply);
+      expect(Number(balanceOf)).equal(expectMintAmount);
+    });
+
+    it('Should return mint data from user2', async () => {
+      const mintValue = ethers.parseEther('0.1');
+      await signerCall(user2, 'mint', [], mintValue);
+
+      const price = await providerCall('price', []);
+      
+      const totalSupply = await providerCall('totalSupply', []);
+      
+      const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
+      
+      const contractBalance = await ethers.provider.getBalance(contractAddress);
+      const balanceOfUser1 = await providerCall('balanceOf', [user1.address]);
+      const balanceOfUser2 = await providerCall('balanceOf', [user2.address]);
+      const totalBalanceOf = Number(balanceOfUser1) + Number(balanceOfUser2);
+      
+      const expectContractBalance = Number(price) * totalBalanceOf;
+      const expectMintAmount = Number(mintValue) / Number(price);
+      
+      const logs = await getLogs(transferEvent);
+      
+      const {data, topics} = logs[1];
+      const [_, fromAddress, toAddress] = topics;
+      
+      expect(Number(data)).equal(expectMintAmount);
+      expect(fromAddress).equal(zeroPadValue('0x'));
+      expect(toAddress).equal(zeroPadValue(user2.address));
+      expect(Number(totalSupply)).equal(totalBalanceOf);
+      expect(Number(contractBalance)).equal(expectContractBalance);
     });
   });
 });
