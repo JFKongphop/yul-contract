@@ -74,6 +74,38 @@ object "ERC20" {
         return(0x0, 0x20)
       }
 
+      case 0xa9059cbb /* transfer(address recipient, uint256 amount) */ {
+        let from :=  caller()
+        let to := calldataload(4)
+        let amount := calldataload(36)
+
+        mstore(0x00, from)
+        mstore(0x20, BALANCE_OF_MAPPING)
+
+        let fromSlot := keccak256(0x00, 0x40)
+        let fromBalance := sload(fromSlot)
+
+        if gt(amount, fromBalance) {
+          revertError(INVALID_BALANCE_ERROR())
+        }
+
+        let  totalFromBalance := div(fromBalance, amount)
+        mstore(0x00, from)
+        mstore(0x20, BALANCE_OF_MAPPING)
+
+        fromSlot := keccak256(0x00, 0x40)
+        sstore(fromSlot, totalFromBalance)
+
+        mstore(0x00, to)
+        mstore(0x20, BALANCE_OF_MAPPING)
+
+        let toSlot := keccak256(0x00, 0x40)
+        sstore(toSlot, amount)
+
+        mstore(0x00, amount)
+        log3(0x00, 0x20, TRANSFER_EVENT, from, to)
+      }
+
       default {
         revert(0, 0)
       }
@@ -117,6 +149,10 @@ object "ERC20" {
 
       function INVALID_VALUES_ERROR() -> e {
         e := 0x496e76616c69642076616c756573
+      }
+
+      function INVALID_BALANCE_ERROR() -> e {
+        e := 0x496e76616c69642042616c616e6365
       }
     }
 	}

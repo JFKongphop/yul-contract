@@ -52,12 +52,7 @@ describe('YUL', async () => {
       
       const totalSupply = await providerCall('totalSupply', []);
 
-      expect(Number(totalSupply)).equal(expectTotalSupply);
-
       const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
-
-      console.log(transferEvent)
-
       const logs = await ethers.provider.getLogs({
         fromBlock: 0, 
         toBlock: "latest",
@@ -68,16 +63,17 @@ describe('YUL', async () => {
       const {data, topics} = logs[0];
       const [_, fromAddress, toAddress] = topics;
 
+      const contractBalance = await ethers.provider.getBalance(contractAddress);
+      const balanceOf = await providerCall('balanceOf', [user1.address]);
+
       expect(data).equal(totalSupply);
       expect(fromAddress).equal(zeroPadValue('0x'));
-      expect(toAddress).equal(zeroPadValue(user1.address))
-
-      const contractBalance = await ethers.provider.getBalance(contractAddress);
-      console.log(contractBalance)
-
+      expect(toAddress).equal(zeroPadValue(user1.address));
+      expect(Number(totalSupply)).equal(expectTotalSupply);
       expect(contractBalance).equal(mintValue);
+      expect(Number(balanceOf)).equal(expectTotalSupply);
 
-\
+      console.log(hexEncoder('Invalid Balance'))
     });
   });
 });
@@ -111,9 +107,17 @@ const providerCall = async (name: string, params?: any[]): Promise<string> => {
   });
 }
 
-const dataEncoder = (name: string, params?: any[]): string => {
-  const iface = new ethers.Interface([`function ${name}()`]);
-  return iface.encodeFunctionData(name, params);
+const dataEncoder = (name: string, args?: any[]): string => {
+  let params: string[] = [];
+  if (args?.length) {
+    for (const arg of args) {
+      if (ethers.isAddress(arg)) params.push('address');
+      else params.push('uint');
+    }
+  }
+  const joinParams = params.join(',');
+  const iface = new ethers.Interface([`function ${name}(${joinParams})`]);
+  return iface.encodeFunctionData(name, args);
 }
 
 const hexEncoder = (string: string) => {
