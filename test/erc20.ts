@@ -93,7 +93,7 @@ describe('YUL', async () => {
       
       const {data, topics} = logs[1];
       const [_, fromAddress, toAddress] = topics;
-      
+
       expect(Number(data)).equal(expectMintAmount);
       expect(fromAddress).equal(zeroPadValue('0x'));
       expect(toAddress).equal(zeroPadValue(user2.address));

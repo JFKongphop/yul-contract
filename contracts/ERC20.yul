@@ -13,6 +13,7 @@ object "ERC20" {
       code {
       /* MAPPING */
       let BALANCE_OF_MAPPING := 0xe2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e
+      let ALLOWANCE_INNER_MAPPING := 0x0660b5286e63a3d8a62a4b42e2eec5109631b5c0e9106d4ed3ff52d916941349
       let ALLOWANCE_MAPPING := 0x1580adec6c68dea5886da953e9eca5c239ae00896b3de5d55248d60b547ea9d8
 
       /* EVENT */
@@ -74,7 +75,7 @@ object "ERC20" {
         return(0x0, 0x20)
       }
 
-      case 0xa9059cbb /* transfer(address recipient, uint256 amount) */ {
+      case 0xa9059cbb /* transfer(address, uint256) */ {
         let from :=  caller()
         let to := calldataload(4)
         let amount := calldataload(36)
@@ -105,6 +106,29 @@ object "ERC20" {
         mstore(0x00, amount)
         log3(0x00, 0x20, TRANSFER_EVENT, from, to)
       }
+
+      case 0x095ea7b3 /* approve(address spender, uint256 amount) */ {
+        let from := caller()
+        let spender := calldataload(4)
+        let amount := calldataload(36)
+
+        mstore(0x00, from)
+        mstore(0x20, ALLOWANCE_MAPPING)
+        let innerAllowanceSlot := keccak256(0x00, 0x40)
+
+        mstore(0x00, spender)
+        mstore(0x20, innerAllowanceSlot)
+        
+        let slot := keccak256(0x00, 0x40)  
+        sstore(slot, amount)
+
+        mstore(0x00, amount)
+        log3(0x00, 0x20, APPROVAL_EVENT, from, spender)
+      }
+
+      
+
+
 
       default {
         revert(0, 0)
