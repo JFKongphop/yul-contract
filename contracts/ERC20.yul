@@ -107,7 +107,7 @@ object "ERC20" {
         log3(0x00, 0x20, TRANSFER_EVENT, from, to)
       }
 
-      case 0x095ea7b3 /* approve(address spender, uint256 amount) */ {
+      case 0x095ea7b3 /* approve(address, uint256) */ {
         let from := caller()
         let spender := calldataload(4)
         let amount := calldataload(36)
@@ -126,7 +126,23 @@ object "ERC20" {
         log3(0x00, 0x20, APPROVAL_EVENT, from, spender)
       }
 
-      
+      case 0xdd62ed3e /* allowance(address, address) */ {
+        let from := calldataload(4)
+        let spender := calldataload(36)
+
+        mstore(0x00, from)
+        mstore(0x20, ALLOWANCE_MAPPING)
+        let innerAllowanceSlot :=  keccak256(0x00, 0x40)
+
+        mstore(0x00, spender)
+        mstore(0x20, innerAllowanceSlot)
+
+        let slot := keccak256(0x00, 0x40)
+        let amount := sload(slot)
+
+        mstore(0x00, amount)
+        return(0x00, 0x20)
+      }
 
 
 
