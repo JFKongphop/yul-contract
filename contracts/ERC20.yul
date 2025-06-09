@@ -145,7 +145,7 @@ object "ERC20" {
 
       case 0x23b872dd /* transferFrom(address,address,uint) */ {
         let sender := calldataload(4)
-        let to := calldataload(36)
+        let recipient := calldataload(36)
         let amount := calldataload(68)
         let from := caller()
 
@@ -156,8 +156,8 @@ object "ERC20" {
         mstore(0x00, from)
         mstore(0x20, innerAllowanceSlot)
         
-        let slot := keccak256(0x00, 0x40)
-        let allowanceAmount := sload(slot)
+        let allowanceSlot := keccak256(0x00, 0x40)
+        let allowanceAmount := sload(allowanceSlot)
 
         if gt(amount, allowanceAmount) {
           revertError(INVALID_BALANCE_ERROR())
@@ -165,19 +165,40 @@ object "ERC20" {
 
         let currentAllowance := sub(allowanceAmount, amount)
         
-        mstore(0x00, sender)
-        mstore(0x20, ALLOWANCE_MAPPING)
-        innerAllowanceSlot := keccak256(0x00, 0x40)
+        // mstore(0x00, sender)
+        // mstore(0x20, ALLOWANCE_MAPPING)
+        // innerAllowanceSlot := keccak256(0x00, 0x40)
 
-        mstore(0x00, from)
-        mstore(0x20, innerAllowanceSlot)
+        // mstore(0x00, from)
+        // mstore(0x20, innerAllowanceSlot)
         
-        slot := keccak256(0x00, 0x40)
-        sstore(slot, currentAllowance)
+        // allowanceSlot := keccak256(0x00, 0x40)
+        sstore(allowanceSlot, currentAllowance)
 
+        mstore(0x00, sender)
+        mstore(0x20, BALANCE_OF_MAPPING)
+        let senderBalanceOfSlot := keccak256(0x00, 0x40)
 
+        let senderBalance := sload(senderBalanceOfSlot)
 
+        if gt(amount, senderBalance) {
+          revertError(INVALID_BALANCE_ERROR())
+        }
 
+        let currentSenderBalance := sub(senderBalance, amount)
+        sstore(senderBalanceOfSlot, currentSenderBalance)
+        
+        mstore(0x00, recipient)
+        mstore(0x20, BALANCE_OF_MAPPING)
+        let recipientBalanceSlot := keccak256(0x00, 0x40)
+
+        let recipientBalance := sload(recipientBalanceSlot)
+
+        let currentRecipientBalance := add(recipient, amount)
+        sstore(recipientBalanceSlot, currentRecipientBalance)
+        
+        mstore(0x00, amount)
+        log3(0x00, 0x20, TRANSFER_EVENT, sender, recipient)
       }
 
       case 0x9dc29fac /* burn(address,uint) */ {
