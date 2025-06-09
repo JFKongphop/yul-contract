@@ -201,8 +201,42 @@ object "ERC20" {
         log3(0x00, 0x20, TRANSFER_EVENT, sender, recipient)
       }
 
-      case 0x9dc29fac /* burn(address,uint) */ {
+      case 0x9dc29fac /* burn(uint) */ {
+        let amount := calldataload(4)
+        let from := caller()
 
+        mstore(0x00, from)
+        mstore(0x20, BALANCE_OF_MAPPING)
+        let balanceOfSlot := keccak256(0x00, 0x40)
+
+        let fromBalance := sload(balanceOfSlot)
+
+        if gt(amount, fromBalance) {
+          revertError(INVALID_BALANCE_ERROR())
+        }
+
+        let currentBalance := sub(fromBalance, amount)
+        sstore(balanceOfSlot, currentBalance)
+
+        let totalSupply := getStorageData(0x18160ddd)
+        sstore(0x18160ddd, sub(totalSupply, amount))
+
+        let price := getStorageData(0xa035b1fe)
+        let sellAmount := mul(price, amount)
+
+        let success := call(
+          gas(),
+          from,
+          amount,
+          0,
+          0,
+          0, 
+          0
+        )
+
+        if iszero(success) {
+          revertError(INVALID_VALUES_ERROR())
+        }
       }
 
 
