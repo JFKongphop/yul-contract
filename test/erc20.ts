@@ -101,7 +101,15 @@ describe('YUL', async () => {
   });
 
   describe('Transfer', async () => {
-    it('Should transfer from user 1 to user 3', async () => {
+    it('Should revert transfer invalid balance', async () => {
+      const balanceOf = Number(await providerCall('balanceOf', [user1.address]));
+      const transferAmount = balanceOf + 1;
+      const error = await signerCall(user1, 'transfer', [user3.address, transferAmount]);
+
+      expect(error).equal(zeroPadValue(hexEncoder('Invalid Balance')));
+    });
+
+    it('Should return transfer from user 1 to user 3', async () => {
       const balanceOfUser1BeforeTransfer = Number(await providerCall('balanceOf', [user1.address]));
       const transferAmount = balanceOfUser1BeforeTransfer * 0.2;
 
@@ -121,8 +129,5 @@ describe('YUL', async () => {
       expect(fromAddress).equal(zeroPadValue(user1.address));
       expect(toAddress).equal(zeroPadValue(user3.address));
     });
-    
-
-
   });
 });

@@ -23,7 +23,7 @@ export const signerCall = async (
 
     return 'Success';
   } catch (e: any) {
-    return hexDecoder(e.data)
+    return e.data;
   }
 }
 
