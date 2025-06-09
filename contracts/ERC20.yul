@@ -95,10 +95,6 @@ object "ERC20" {
         }
 
         let  totalFromBalance := sub(fromBalance, amount)
-        mstore(0x00, from)
-        mstore(0x20, BALANCE_OF_MAPPING)
-
-        fromSlot := keccak256(0x00, 0x40)
         sstore(fromSlot, totalFromBalance)
 
         mstore(0x00, to)

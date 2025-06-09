@@ -12,8 +12,10 @@ describe('YUL', async () => {
   let user2: SignerWithAddress;
   let user3: SignerWithAddress;
 
+  const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
+
   before(async () => {    
-    [user1, user2] = await ethers.getSigners();
+    [user1, user2, user3] = await ethers.getSigners();
     const Contract = await ethers.getContractFactory([], bytecode);
     const contract = await Contract.deploy();
     contractAddress = await contract.getAddress();
@@ -51,13 +53,11 @@ describe('YUL', async () => {
       await signerCall(user1, 'mint', [], mintValue);
 
       const price = await providerCall('price', []);
+      const totalSupply = await providerCall('totalSupply', []);
       const expectMintAmount = Number(mintValue) / Number(price);
       
-      const totalSupply = await providerCall('totalSupply', []);
 
-      const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
       const logs = await getLogs(transferEvent);
-
       const {data, topics} = logs[0];
       const [_, fromAddress, toAddress] = topics;
 
@@ -77,10 +77,7 @@ describe('YUL', async () => {
       await signerCall(user2, 'mint', [], mintValue);
 
       const price = await providerCall('price', []);
-      
       const totalSupply = await providerCall('totalSupply', []);
-      
-      const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
       
       const contractBalance = await ethers.provider.getBalance(contractAddress);
       const balanceOfUser1 = await providerCall('balanceOf', [user1.address]);
@@ -103,5 +100,29 @@ describe('YUL', async () => {
     });
   });
 
-  describe('');
+  describe('Transfer', async () => {
+    it('Should transfer from user 1 to user 3', async () => {
+      const balanceOfUser1BeforeTransfer = Number(await providerCall('balanceOf', [user1.address]));
+      const transferAmount = balanceOfUser1BeforeTransfer * 0.2;
+
+      await signerCall(user1, 'transfer', [user3.address, transferAmount]);
+   
+      const balanceOfAfterTransfer = Number(await providerCall('balanceOf', [user1.address]));
+      const balanceOfUser3Transfer = Number(await providerCall('balanceOf', [user3.address]));
+      const expectedUser1BalanceOfAfterTransfer = balanceOfUser1BeforeTransfer - transferAmount;
+      
+      const logs = await getLogs(transferEvent);
+      const {data, topics} = logs[2];
+      const [_, fromAddress, toAddress] = topics;
+      
+      expect(balanceOfAfterTransfer).equal(expectedUser1BalanceOfAfterTransfer);
+      expect(balanceOfUser3Transfer).equal(transferAmount);
+      expect(Number(data)).equal(transferAmount);
+      expect(fromAddress).equal(zeroPadValue(user1.address));
+      expect(toAddress).equal(zeroPadValue(user3.address));
+    });
+    
+
+
+  });
 });
