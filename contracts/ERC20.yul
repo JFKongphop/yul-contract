@@ -26,18 +26,23 @@ object "ERC20" {
       case 0x18160ddd /* totalSupply() */ {
         returnStorageData(0x18160ddd)
       }
+      
       case 0x06fdde03 /* name() */ {
         returnStorageData(0x06fdde03)
       }
+
       case 0x95d89b41 /* symbol() */ {
         returnStorageData(0x95d89b41)
       } 
+
       case 0x313ce567 /* decimals() */ {
         returnStorageData(0x313ce567)
       }
+
       case 0xa035b1fe /* price() */ {
         returnStorageData(0xa035b1fe)
       }
+
       case 0x1249c58b /* mint() */ {
         let from := caller()
         let amount := callvalue()
@@ -238,8 +243,6 @@ object "ERC20" {
           revertError(INVALID_VALUES_ERROR())
         }
       }
-
-
 
       default {
         revert(0, 0)

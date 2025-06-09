@@ -10,6 +10,7 @@ describe('YUL', async () => {
   let contractAddress: string;
   let user1: SignerWithAddress; 
   let user2: SignerWithAddress;
+  let user3: SignerWithAddress;
 
   before(async () => {    
     [user1, user2] = await ethers.getSigners();
@@ -101,4 +102,6 @@ describe('YUL', async () => {
       expect(Number(contractBalance)).equal(expectContractBalance);
     });
   });
+
+  describe('');
 });
