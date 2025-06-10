@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
 import { hexlify, keccak256, toUtf8Bytes } from 'ethers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
@@ -13,6 +13,7 @@ describe('YUL', async () => {
   let user3: SignerWithAddress;
 
   const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
+  const approveEvent = keccakEncoder('Approval(address indexed owner, address indexed spender, uint256 value)');
 
   before(async () => {    
     [user1, user2, user3] = await ethers.getSigners();
@@ -128,6 +129,25 @@ describe('YUL', async () => {
       expect(Number(data)).equal(transferAmount);
       expect(fromAddress).equal(zeroPadValue(user1.address));
       expect(toAddress).equal(zeroPadValue(user3.address));
+    });
+  });
+
+  describe('Approve', async () => {
+    it('Should return approve from user1 to user 3', async () => {
+      const approveAmount = 1000000000;
+      await signerCall(user1, 'approve', [user3.address, approveAmount]);
+
+      const allowanceAmount = await providerCall('allowance', [user1.address, user3.address]);
+
+      const logs = await getLogs(approveEvent);
+
+      const {data, topics} = logs[0];
+      const [_, fromAddress, spenderAddress] = topics;
+
+      expect(Number(allowanceAmount)).equal(approveAmount);
+      expect(data).equal(allowanceAmount);
+      expect(fromAddress).equal(zeroPadValue(user1.address));
+      expect(spenderAddress).equal(zeroPadValue(user3.address));
     });
   });
 });
