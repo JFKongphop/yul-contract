@@ -1,6 +1,5 @@
 import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
-import { hexlify, keccak256, Signature, toUtf8Bytes } from 'ethers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC20/ERC20.bytecode.json';
 import { hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
@@ -191,7 +190,6 @@ describe('YUL', async () => {
   });
 
   describe('Burn', async () => {
-    
     it('Should return burn token from user 1', async () => {
       const contractBalanceBeforeBurn = await ethers.provider.getBalance(contractAddress);    
       const balanceOfUser1EthBeforeBurn = await ethers.provider.getBalance(user1.address);
