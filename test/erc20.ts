@@ -14,6 +14,7 @@ describe('YUL', async () => {
 
   const transferEvent = keccakEncoder('Transfer(address indexed from, address indexed to, uint256 value)');
   const approveEvent = keccakEncoder('Approval(address indexed owner, address indexed spender, uint256 value)');
+  const invalidBalance = zeroPadValue(hexEncoder('Invalid Balance'));
 
   before(async () => {    
     [user1, user2, user3] = await ethers.getSigners();
@@ -107,7 +108,7 @@ describe('YUL', async () => {
       const transferAmount = balanceOf + 1;
       const error = await signerCall(user1, 'transfer', [user3.address, transferAmount]);
 
-      expect(error).equal(zeroPadValue(hexEncoder('Invalid Balance')));
+      expect(error).equal(invalidBalance);
     });
 
     it('Should return transfer from user 1 to user 3', async () => {
@@ -134,7 +135,7 @@ describe('YUL', async () => {
 
   describe('Approve', async () => {
     it('Should return approve from user1 to user 3', async () => {
-      const approveAmount = 1000000000;
+      const approveAmount = 3000000000;
       await signerCall(user1, 'approve', [user3.address, approveAmount]);
 
       const allowanceAmount = await providerCall('allowance', [user1.address, user3.address]);
@@ -148,6 +149,44 @@ describe('YUL', async () => {
       expect(data).equal(allowanceAmount);
       expect(fromAddress).equal(zeroPadValue(user1.address));
       expect(spenderAddress).equal(zeroPadValue(user3.address));
+    });
+  });
+
+  describe('TransferForm', async () => {
+    it('Should revert transferForm invalid balance', async () => {
+      const approveAmount = 8000000001;
+      const error = await signerCall(user3, 'transferFrom', [user1.address, user2.address, approveAmount]);
+
+      expect(error).equal(invalidBalance);
+    });
+
+    it('Should return transferForm user1 spended by user3 to user2', async () => {
+      const approveSpendAmount = 500000000;
+
+      const allowanceBeforeTransferForm = await providerCall('allowance', [user1.address, user3.address]);
+      const balanceOfUser1BeforeTransferForm = await providerCall('balanceOf', [user1.address]);
+      const balanceOfUser2BeforeTransferForm = await providerCall('balanceOf', [user2.address]);
+
+      await signerCall(user3, 'transferFrom', [user1.address, user2.address, approveSpendAmount]);
+
+      const allowanceAfterTransferFrom = await providerCall('allowance', [user1.address, user3.address]);
+      const balanceOfUser1AfterTransferFrom = await providerCall('balanceOf', [user1.address]);
+      const balanceOfUser2AfterTransferFrom = await providerCall('balanceOf', [user2.address]);
+
+      const expectedAllowanceAfterTransferFrom = Number(allowanceBeforeTransferForm) - approveSpendAmount;
+      const expectedUser1BalanceOfAfterTransferFrom = Number(balanceOfUser1BeforeTransferForm) - approveSpendAmount;
+      const expectedUser2BalanceOfAfterTransferFrom = Number(balanceOfUser2BeforeTransferForm) + approveSpendAmount;
+
+      const logs = await getLogs(transferEvent);
+      const {data, topics} = logs[3];
+      const [_, fromAddress, toAddress] = topics;
+
+      expect(Number(allowanceAfterTransferFrom)).equal(expectedAllowanceAfterTransferFrom);
+      expect(Number(balanceOfUser1AfterTransferFrom)).equal(expectedUser1BalanceOfAfterTransferFrom);
+      expect(Number(balanceOfUser2AfterTransferFrom)).equal(expectedUser2BalanceOfAfterTransferFrom);
+      expect(Number(data)).equal(approveSpendAmount);
+      expect(fromAddress).equal(zeroPadValue(user1.address));
+      expect(toAddress).equal(zeroPadValue(user2.address))
     });
   });
 });

@@ -127,20 +127,21 @@ object "ERC20" {
       }
 
       case 0xdd62ed3e /* allowance(address, address) */ {
-        let from := calldataload(4)
+        let sender := calldataload(4)
         let spender := calldataload(36)
 
-        mstore(0x00, from)
+        // get allowance
+        mstore(0x00, sender)
         mstore(0x20, ALLOWANCE_MAPPING)
-        let innerAllowanceSlot :=  keccak256(0x00, 0x40)
+        let innerAllowanceSlot := keccak256(0x00, 0x40)
 
         mstore(0x00, spender)
         mstore(0x20, innerAllowanceSlot)
 
-        let slot := keccak256(0x00, 0x40)
-        let amount := sload(slot)
+        let allowanceSlot := keccak256(0x00, 0x40)
+        let allowanceValue := sload(allowanceSlot)
 
-        mstore(0x00, amount)
+        mstore(0x00, allowanceValue)
         return(0x00, 0x20)
       }
 
@@ -165,15 +166,6 @@ object "ERC20" {
         }
 
         let currentAllowance := sub(allowanceAmount, amount)
-        
-        // mstore(0x00, sender)
-        // mstore(0x20, ALLOWANCE_MAPPING)
-        // innerAllowanceSlot := keccak256(0x00, 0x40)
-
-        // mstore(0x00, from)
-        // mstore(0x20, innerAllowanceSlot)
-        
-        // allowanceSlot := keccak256(0x00, 0x40)
         sstore(allowanceSlot, currentAllowance)
 
         mstore(0x00, sender)
@@ -195,7 +187,7 @@ object "ERC20" {
 
         let recipientBalance := sload(recipientBalanceSlot)
 
-        let currentRecipientBalance := add(recipient, amount)
+        let currentRecipientBalance := add(recipientBalance, amount)
         sstore(recipientBalanceSlot, currentRecipientBalance)
         
         mstore(0x00, amount)
