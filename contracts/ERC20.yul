@@ -194,7 +194,7 @@ object "ERC20" {
         log3(0x00, 0x20, TRANSFER_EVENT, sender, recipient)
       }
 
-      case 0x9dc29fac /* burn(uint) */ {
+      case 0x42966c68 /* burn(uint) */ {
         let amount := calldataload(4)
         let from := caller()
 
@@ -212,7 +212,8 @@ object "ERC20" {
         sstore(balanceOfSlot, currentBalance)
 
         let totalSupply := getStorageData(0x18160ddd)
-        sstore(0x18160ddd, sub(totalSupply, amount))
+        let currentTotalSupply := sub(totalSupply, amount)
+        sstore(0x18160ddd, currentTotalSupply)
 
         let price := getStorageData(0xa035b1fe)
         let sellAmount := mul(price, amount)
@@ -220,7 +221,7 @@ object "ERC20" {
         let success := call(
           gas(),
           from,
-          amount,
+          sellAmount,
           0,
           0,
           0, 

@@ -1,6 +1,6 @@
 import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
-import { hexlify, keccak256, toUtf8Bytes } from 'ethers';
+import { hexlify, keccak256, Signature, toUtf8Bytes } from 'ethers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC20/ERC20.bytecode.json';
 import { hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
@@ -187,6 +187,36 @@ describe('YUL', async () => {
       expect(Number(data)).equal(approveSpendAmount);
       expect(fromAddress).equal(zeroPadValue(user1.address));
       expect(toAddress).equal(zeroPadValue(user2.address))
+    });
+  });
+
+  describe('Burn', async () => {
+    
+    it('Should return burn token from user 1', async () => {
+      const contractBalanceBeforeBurn = await ethers.provider.getBalance(contractAddress);    
+      const balanceOfUser1EthBeforeBurn = await ethers.provider.getBalance(user1.address);
+      const balanceOfUser1BeforeBurn = await providerCall('balanceOf', [user1.address]);
+      const totalSupplyBeforeBurn = await providerCall('totalSupply', []);
+      const price = await providerCall('price', []);
+
+      const burnAmount = Number(balanceOfUser1BeforeBurn)
+      await signerCall(user1, 'burn', [burnAmount]);
+
+      const contractBalanceAfterBurn = await ethers.provider.getBalance(contractAddress);
+      const balanceOfUser1EthAfterBurn = await ethers.provider.getBalance(user1.address);
+      const balanceOfUser1AfterBurn = await providerCall('balanceOf', [user1.address]);
+      const totalSupplyAfterBurn = await providerCall('totalSupply', []);
+
+
+      const differentUser1EthBalance = Number(balanceOfUser1EthAfterBurn) - Number(balanceOfUser1EthBeforeBurn);
+      const expectedContractBalanceAfterBurn = Number(totalSupplyAfterBurn) * Number(price);
+      const expectedContractBalanceBeforeBurn = Number(totalSupplyBeforeBurn) * Number(price);
+      const expectedTotalSupplyAfterBurn = Number(totalSupplyBeforeBurn) - burnAmount; 
+
+      expect(Number(contractBalanceBeforeBurn)).equal(expectedContractBalanceBeforeBurn);
+      expect(Number(contractBalanceAfterBurn)).equal(expectedContractBalanceAfterBurn);
+      expect(Number(totalSupplyAfterBurn)).equal(expectedTotalSupplyAfterBurn);
+      expect(Number(balanceOfUser1AfterBurn)).equal(0);
     });
   });
 });
