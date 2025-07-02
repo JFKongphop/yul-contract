@@ -10,6 +10,9 @@ deploy:
 ce2:
 	node compiler/solc.js ERC20
 
+ce7:
+	node compiler/solc.js ERC721
+
 cpsd:
 	node compiler/solc.js Poseidon
 
