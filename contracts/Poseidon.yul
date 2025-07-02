@@ -212,26 +212,18 @@ object "Poseidon" {
     sstore(0x2ece604f14991ac0a0a706fba53f7d28f4681a32536c5a4b61ea06a72f8cd682, 0x176cc029695ad02582a70eff08a6fd99d057e12e58e7d7b6b16cdfabc8ee2911)
     sstore(0xc9e6ac08f9548ba4f8589858780ca1b1e9df7530bb985ef726fd0e52186c774c, 0x19a3fc0a56702bf417ba7fee3802593fa644470307043f7773279cd71d25d5e0)
 
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
 	}    
   object "runtime" {
     code {
-      
+      let selector := shr(224, calldataload(0))
+
+      switch selector
+
+      case 0x6e9c433b /* poseidon2(uint,uint) */ {
+
+      }
     }
 	}
 }
