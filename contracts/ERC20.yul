@@ -9,8 +9,8 @@ object "ERC20" {
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
 	}    
-    object "runtime" {
-      code {
+  object "runtime" {
+    code {
       /* MAPPING */
       let BALANCE_OF_MAPPING := 0xe2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e
       let ALLOWANCE_MAPPING := 0x1580adec6c68dea5886da953e9eca5c239ae00896b3de5d55248d60b547ea9d8
