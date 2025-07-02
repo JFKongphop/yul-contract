@@ -10,5 +10,8 @@ deploy:
 ce2:
 	node compiler/solc.js ERC20
 
+cpsd:
+	node compiler/solc.js Poseidon
+
 te2:
 	make ce2 && npx hardhat test test/erc20.ts
