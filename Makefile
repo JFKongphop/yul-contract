@@ -18,3 +18,6 @@ cpsd:
 
 te2:
 	make ce2 && npx hardhat test test/erc20.ts
+
+te7:
+	make ce7 && npx hardhat test test/erc721.ts

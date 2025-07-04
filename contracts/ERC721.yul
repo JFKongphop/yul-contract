@@ -1,10 +1,6 @@
 object "ERC721" {
 	code {
-    sstore(0x18160ddd, 0x00)
-    sstore(0x06fdde03, 0x45544f4b454e)
-    sstore(0x95d89b41, 0x4554)
-    sstore(0x313ce567, 0x12)
-    sstore(0xa035b1fe, 0xf4240)
+    sstore(0x009a9b7b, 0x00)
 
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
@@ -26,6 +22,10 @@ object "ERC721" {
 
       switch selector
 
+      case 0x009a9b7b /* currentTokenId() */ {
+        returnStorageData(0x009a9b7b)
+      }
+
       case 0x6352211e /* ownerOf(uint256) */ {
         let id := calldataload(4)
         mstore(0x00, id)
@@ -38,24 +38,45 @@ object "ERC721" {
         return(0x00, 0x20)
       }
 
+      case 0x70a08231 /* balanceOf(address) */ {
+        let userAddress := calldataload(4)
+
+        let currentUserBalanceOf := getMapping(userAddress, BALANCE_OF_MAPPING)
+        
+        mstore(0x00, currentUserBalanceOf)
+        return(0x00, 0x20)
+      }
+
+      case 0x1249c58b /* mint() */ {
+        let user := caller()
+
+        let currentUserBalanceOf := getMapping(user, BALANCE_OF_MAPPING)
+        let newUserBalanceOf := add(currentUserBalanceOf, 0x01)
+        setMapping(user, newUserBalanceOf, BALANCE_OF_MAPPING)
+
+        let currentTokenId := getStorageData(0x009a9b7b)
+        setMapping(currentTokenId, user, OWNER_OF_MAPPING)
+
+        let newTokenId := add(currentTokenId, 0x01)
+        sstore(0x009a9b7b, newTokenId)
+      }
+
       default {
         revert(0, 0)
       }
 
-      /* PARAMETER MANAGERMENT*/
-      function addressParam(offset) -> v {
-        v := uintParam(offset)
-        if iszero(iszero(and(v , not(0xffffffffffffffffffffffffffffffffffffffff)))) {
-          revertError(INVALID_PARAMS_ERROR())
-        }
+      function setMapping(key, value, memory) {
+        mstore(0x00, key)
+        mstore(0x20, memory)
+        let slot := keccak256(0x00, 0x40)
+        sstore(slot, value)
       }
 
-      function uintParam(offset) -> v {
-        let pos := add(4, mul(offset, 0x20))
-        if lt(calldatasize(), add(pos, 0x20)) {
-          revertError(INVALID_PARAMS_ERROR())
-        }
-        v := calldataload(pos)
+      function getMapping(key, memory) -> value {
+        mstore(0x00, key)
+        mstore(0x20, memory)
+        let slot := keccak256(0x00, 0x40)
+        value := sload(slot)
       }
 
       /* RETURN STORAGE DATA */
