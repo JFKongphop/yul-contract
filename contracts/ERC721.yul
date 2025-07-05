@@ -59,6 +59,24 @@ object "ERC721" {
 
         let newTokenId := add(currentTokenId, 0x01)
         sstore(0x009a9b7b, newTokenId)
+
+        log4(0x00, 0x00, TRANSFER_EVENT, address(), user, currentTokenId)
+      }
+
+      case 0x23b872dd /* transferFrom(address,address,uint256) */ {
+        let from := calldataload(4)
+        let to := calldataload(32)
+        let id := calldataload(68)
+
+        let ownerTokenId := getMapping(id, OWNER_OF_MAPPING)
+
+        if iszero(eq(ownerTokenId, from)) {
+          revertError(INVALID_BALANCE_ERROR())
+        }
+
+        if iszero(eq(to, 0x00)) {
+          revertError(INVALID_VALUES_ERROR())
+        }
       }
 
       default {
