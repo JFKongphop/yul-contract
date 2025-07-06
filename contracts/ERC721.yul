@@ -27,7 +27,7 @@ object "ERC721" {
       }
 
       case 0x6352211e /* ownerOf(uint256) */ {
-        let id := calldataload(4)
+        let id := calldataload(0x04)
         mstore(0x00, id)
         mstore(0x20, OWNER_OF_MAPPING)
 
@@ -39,7 +39,7 @@ object "ERC721" {
       }
 
       case 0x70a08231 /* balanceOf(address) */ {
-        let userAddress := calldataload(4)
+        let userAddress := calldataload(0x04)
 
         let currentUserBalanceOf := getMapping(userAddress, BALANCE_OF_MAPPING)
         
@@ -64,9 +64,9 @@ object "ERC721" {
       }
 
       case 0x23b872dd /* transferFrom(address,address,uint256) */ {
-        let from := calldataload(4)
-        let to := calldataload(32)
-        let id := calldataload(68)
+        let from := calldataload(0x04)
+        let to := calldataload(0x24)
+        let id := calldataload(0x44)
 
         let ownerTokenId := getMapping(id, OWNER_OF_MAPPING)
 
@@ -77,6 +77,45 @@ object "ERC721" {
         if iszero(eq(to, 0x00)) {
           revertError(INVALID_VALUES_ERROR())
         }
+      }
+
+      case 0xa22cb465 /* setApprovalForAll(address,bool) */ {
+        let operator := calldataload(0x04)
+        let approved := calldataload(0x24)
+
+        let owner := caller()
+
+        mstore(0x00, owner)
+        mstore(0x20, IS_APPROVED_FOR_ALL)
+        let innerApprovedForAll := keccak256(0x00, 0x40)
+
+        mstore(0x00, operator)
+        mstore(0x20, innerApprovedForAll)
+        
+        let outerSlot := keccak256(0x00, 0x40)
+        sstore(outerSlot, approved)
+
+        mstore(0x00, approved)
+        log3(0x00, 0x20, APPROVAL_FOR_ALL_EVENT, owner, operator)
+      }
+
+      case 0xe985e9c5 /* isApprovedForAll(address,address) */ {
+        let owner := calldataload(0x04)
+        let operator := calldataload(0x24)
+
+        mstore(0x00, owner)
+        mstore(0x20, IS_APPROVED_FOR_ALL)
+        let innerApprovedForAll := keccak256(0x00, 0x40)
+
+        mstore(0x00, operator)
+        mstore(0x20, innerApprovedForAll)
+        
+        let outerSlot := keccak256(0x00, 0x40)
+
+        let approved := sload(outerSlot)
+
+        mstore(0x00, approved)
+        return(0x00, 0x20)
       }
 
       default {

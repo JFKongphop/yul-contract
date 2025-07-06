@@ -10,6 +10,7 @@ export const dataEncoder = (name: string, args?: any[]): string => {
   if (args?.length) {
     for (const arg of args) {
       if (ethers.isAddress(arg)) params.push('address');
+      else if (arg === true || arg === false) params.push('bool');
       else params.push('uint');
     }
   }

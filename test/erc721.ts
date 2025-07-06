@@ -50,4 +50,19 @@ describe('ERC721', async () => {
       expect(ownerOfTokenId).equal(zeroPadValue(user1.address));
     });
   });
+
+  describe('SetApprovalForAll', async () => {
+    it('Should return is approve for all', async () => {
+      await signerCall(user1, 'setApprovalForAll', [user2.address, true]);
+
+      const logs = await getLogs(APPROVAL_FOR_ALL_EVENT);
+      console.log(logs)
+
+      const approved = await providerCall('isApprovedForAll', [user1.address, user2.address]);
+
+      console.log(approved)
+
+
+    });
+  });
 });
