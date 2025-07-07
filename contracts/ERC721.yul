@@ -11,7 +11,7 @@ object "ERC721" {
       let OWNER_OF_MAPPING := 0xed604959ad6c4ff617f61de52ea4167a084324d152b3837c0497e1dafd716e7a
       let BALANCE_OF_MAPPING := 0x215fa97c078299ea5d7fbc524604832d1cc4ed1cc4f530c7605980f6d2ee8108
       let APPROVAL_MAPPING := 0x374f239b237f5924ec76ae930e13a727f5dac81776df2400d1deef19771bf6e7
-      let IS_APPROVED_FOR_ALL := 0xc67395a334e08439b916a88681a315e5e89e6c3680d12ded9795ab61bd8ca9e1
+      let IS_APPROVED_FOR_ALL_MAPPING := 0xc67395a334e08439b916a88681a315e5e89e6c3680d12ded9795ab61bd8ca9e1
 
       /* EVENT */
       let TRANSFER_EVENT := 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
@@ -28,11 +28,7 @@ object "ERC721" {
 
       case 0x6352211e /* ownerOf(uint256) */ {
         let id := calldataload(0x04)
-        mstore(0x00, id)
-        mstore(0x20, OWNER_OF_MAPPING)
-
-        let slot := keccak256(0x00, 0x40)
-        let ownerAddress := sload(slot)
+        let ownerAddress := ownerOf(id, OWNER_OF_MAPPING)
 
         mstore(0x00, ownerAddress)
         return(0x00, 0x20)
@@ -86,7 +82,7 @@ object "ERC721" {
         let owner := caller()
 
         mstore(0x00, owner)
-        mstore(0x20, IS_APPROVED_FOR_ALL)
+        mstore(0x20, IS_APPROVED_FOR_ALL_MAPPING)
         let innerApprovedForAll := keccak256(0x00, 0x40)
 
         mstore(0x00, operator)
@@ -103,8 +99,69 @@ object "ERC721" {
         let owner := calldataload(0x04)
         let operator := calldataload(0x24)
 
+        let approved := isApprovedForAll(owner, operator, IS_APPROVED_FOR_ALL_MAPPING)
+
+        mstore(0x00, approved)
+        return(0x00, 0x20)
+      }
+
+      case 0x095ea7b3 /* approve(address,uint256) */ {
+        let spender := calldataload(0x04)
+        let id := calldataload(0x24)
+        let from := caller()
+        let owner := ownerOf(id, OWNER_OF_MAPPING)
+
+        let ownerEqual := eq(from, owner)
+        let approved := isApprovedForAll(owner, from, IS_APPROVED_FOR_ALL_MAPPING)
+        
+        if iszero(eq(ownerEqual, approved)) {
+          revertError(INVALID_VALUES_ERROR())
+        }
+
+        setApprove(id, spender, APPROVAL_MAPPING)
+
+        log4(0x00, 0x00, APPROVAL_MAPPING, owner, spender, id)
+      }
+
+      case 0x081812fc /* getApproved(uint256)*/ {
+        
+      }
+
+      case 0x72982cd2 /* isApprovedOrOwner(address,address,uint256) */ {
+        let owner := calldataload(0x04)
+        let spender := calldataload(0x24)
+        let id := calldataload(0x44)
+
+        let approved := isApprovedForAll(owner, spender, IS_APPROVED_FOR_ALL_MAPPING)
+
+
+        // let isApprovedForAll = getMapping()
+
+      }
+
+      case 0x42966c68 /* burn(uint256) */ {
+        
+      }
+
+      default {
+        revert(0, 0)
+      }
+
+      function ownerOf(id, memory) -> ownerAddress {
+        ownerAddress := getMapping(id, memory)
+      }
+
+      function setApprove(id, spender, memory) {
+        setMapping(id, spender, memory)
+      }
+
+      function getApprove(id, memory) -> approveAddress {
+        approveAddress := getMapping(id, memory)
+      }
+
+      function isApprovedForAll(owner, operator, memory) -> value {
         mstore(0x00, owner)
-        mstore(0x20, IS_APPROVED_FOR_ALL)
+        mstore(0x20, memory)
         let innerApprovedForAll := keccak256(0x00, 0x40)
 
         mstore(0x00, operator)
@@ -112,14 +169,7 @@ object "ERC721" {
         
         let outerSlot := keccak256(0x00, 0x40)
 
-        let approved := sload(outerSlot)
-
-        mstore(0x00, approved)
-        return(0x00, 0x20)
-      }
-
-      default {
-        revert(0, 0)
+        value := sload(outerSlot)
       }
 
       function setMapping(key, value, memory) {
