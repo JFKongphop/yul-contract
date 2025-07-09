@@ -70,9 +70,36 @@ object "ERC721" {
           revertError(INVALID_BALANCE_ERROR())
         }
 
-        if iszero(eq(to, 0x00)) {
+        if iszero(not(eq(to, 0x00))) {
           revertError(INVALID_VALUES_ERROR())
         }
+
+        let spender := caller()
+
+        let ownerEqual := eq(from, spender)
+        let approvedForAll := isApprovedForAll(from, spender, IS_APPROVED_FOR_ALL_MAPPING)
+        let spenderApproval := iszero(eq(spender, getApprove(id, APPROVAL_MAPPING)))
+
+        let status := eq(ownerEqual, eq(approvedForAll, spenderApproval))
+        
+        if iszero(status) {
+          revertError(INVALID_VALUES_ERROR())
+        }
+
+        let currentFromBalance := getBalanceOf(from, BALANCE_OF_MAPPING)
+        let newFromBalance := sub(currentFromBalance, 0x01)
+        setBalanceOf(from, newFromBalance, BALANCE_OF_MAPPING)
+
+        let currentToBalance := getBalanceOf(to, BALANCE_OF_MAPPING)
+        let newToBalance := add(currentToBalance, 0x01)
+        setBalanceOf(to, newToBalance, BALANCE_OF_MAPPING)
+
+        let latestToBalance := getBalanceOf(to, BALANCE_OF_MAPPING)
+
+        setMapping(id, to, OWNER_OF_MAPPING)
+        setApprove(id, 0x00, APPROVAL_MAPPING)
+
+        log4(0x00, 0x00, TRANSFER_EVENT, from, to, id)
       }
 
       case 0xa22cb465 /* setApprovalForAll(address,bool) */ {
@@ -124,20 +151,25 @@ object "ERC721" {
       }
 
       case 0x081812fc /* getApproved(uint256)*/ {
-        
+        let id := calldataload(0x04)
+
+        let approveAddress := getApprove(id, APPROVAL_MAPPING)
+
+        mstore(0x00, approveAddress)
+        return(0x00, 0x20)
       }
 
-      case 0x72982cd2 /* isApprovedOrOwner(address,address,uint256) */ {
-        let owner := calldataload(0x04)
-        let spender := calldataload(0x24)
-        let id := calldataload(0x44)
+      // case 0x72982cd2 /* isApprovedOrOwner(address,address,uint256) */ {
+      //   let owner := calldataload(0x04)
+      //   let spender := calldataload(0x24)
+      //   let id := calldataload(0x44)
 
-        let approved := isApprovedForAll(owner, spender, IS_APPROVED_FOR_ALL_MAPPING)
+      //   let approved := isApprovedForAll(owner, spender, IS_APPROVED_FOR_ALL_MAPPING)
 
 
-        // let isApprovedForAll = getMapping()
+      //   // let isApprovedForAll = getMapping()
 
-      }
+      // }
 
       case 0x42966c68 /* burn(uint256) */ {
         
@@ -145,6 +177,14 @@ object "ERC721" {
 
       default {
         revert(0, 0)
+      }
+
+      function getBalanceOf(user, memory) -> ownerBalance {
+        ownerBalance := getMapping(user, memory)
+      }
+      
+      function setBalanceOf(user, balanceOf,  memory) {
+        setMapping(user, balanceOf, memory)
       }
 
       function ownerOf(id, memory) -> ownerAddress {

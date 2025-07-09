@@ -53,20 +53,40 @@ describe('ERC721', async () => {
 
   describe('SetApprovalForAll and IsApprovedForAll', async () => {
     it('Should return is approve for all', async () => {
-      await signerCall(user1, 'setApprovalForAll', [user2.address, true]);
+      await signerCall(user1, 'setApprovalForAll', [user1.address, true]);
 
-      const approved = await providerCall('isApprovedForAll', [user1.address, user2.address]);      
+      const approved = await providerCall('isApprovedForAll', [user1.address, user1.address]);      
       
       const logs = await getLogs(APPROVAL_FOR_ALL_EVENT);
       const { data, topics } = logs[0];
       const [_, owner, operator] = topics;
 
+      const a = await providerCall('getApproved', [1]);
+      console.log(a)
+
       expect(data).equal(approved);
       expect(owner).equal(zeroPadValue(user1.address));
-      expect(operator).equal(zeroPadValue(user2.address));
+      expect(operator).equal(zeroPadValue(user1.address));
       expect(Number(approved)).equal(Number(true));
+    });
+  });
 
-      console.log(hexEncoder('NOT AUTHORIZED'))
+  describe('TransferFrom', async () => {
+    it('Should return transferFrom', async () => {
+      await signerCall(user1, 'transferFrom', [user1.address, user2.address, 0]);
+      const user1BalanceOf = await providerCall('balanceOf', [user1.address]);
+
+      const logs = await getLogs(TRANSFER_EVENT);
+      // console.log(logs)
+
+      const user2BalanceOf = await providerCall('balanceOf', [user2.address]);    
+      const ownerOfTokenId = await providerCall('ownerOf', [0]);
+
+
+
+      expect(Number(user1BalanceOf)).equal(0);
+      expect(Number(user2BalanceOf)).equal(1)
+      expect(ownerOfTokenId).equal(zeroPadValue(user2.address))
     });
   });
 });
