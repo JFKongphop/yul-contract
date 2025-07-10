@@ -68,7 +68,7 @@ object "ERC20" {
       }
 
       case 0x70a08231 /* balanceOf(address) */ {
-        let userAddress := calldataload(4)
+        let userAddress := decodeAsAddress(0)
         mstore(0x00, userAddress)
         mstore(0x20, BALANCE_OF_MAPPING)
         
@@ -81,8 +81,8 @@ object "ERC20" {
 
       case 0xa9059cbb /* transfer(address, uint256) */ {
         let from :=  caller()
-        let to := calldataload(4)
-        let amount := calldataload(36)
+        let to := decodeAsAddress(0)
+        let amount := decodeAsUint(1)
 
         mstore(0x00, from)
         mstore(0x20, BALANCE_OF_MAPPING)
@@ -109,8 +109,8 @@ object "ERC20" {
 
       case 0x095ea7b3 /* approve(address, uint256) */ {
         let from := caller()
-        let spender := calldataload(4)
-        let amount := calldataload(36)
+        let spender := decodeAsAddress(0)
+        let amount := decodeAsUint(1)
 
         mstore(0x00, from)
         mstore(0x20, ALLOWANCE_MAPPING)
@@ -127,8 +127,8 @@ object "ERC20" {
       }
 
       case 0xdd62ed3e /* allowance(address, address) */ {
-        let sender := calldataload(4)
-        let spender := calldataload(36)
+        let sender := decodeAsAddress(0)
+        let spender := decodeAsAddress(1)
 
         // get allowance
         mstore(0x00, sender)
@@ -146,9 +146,9 @@ object "ERC20" {
       }
 
       case 0x23b872dd /* transferFrom(address,address,uint) */ {
-        let sender := calldataload(4)
-        let recipient := calldataload(36)
-        let amount := calldataload(68)
+        let sender := decodeAsAddress(0)
+        let recipient := decodeAsAddress(1)
+        let amount := decodeAsUint(2)
         let from := caller()
 
         mstore(0x00, sender)
@@ -195,7 +195,7 @@ object "ERC20" {
       }
 
       case 0x42966c68 /* burn(uint) */ {
-        let amount := calldataload(4)
+        let amount := decodeAsUint(0)
         let from := caller()
 
         mstore(0x00, from)
@@ -238,19 +238,19 @@ object "ERC20" {
       }
 
       /* PARAMETER MANAGERMENT*/
-      function addressParam(offset) -> v {
-        v := uintParam(offset)
-        if iszero(iszero(and(v , not(0xffffffffffffffffffffffffffffffffffffffff)))) {
-          revertError(INVALID_PARAMS_ERROR())
+      function decodeAsAddress(offset) -> value {
+        value := decodeAsUint(offset)
+        if iszero(iszero(and(value, not(0xffffffffffffffffffffffffffffffffffffffff)))) {
+          revert(0, 0)
         }
       }
-
-      function uintParam(offset) -> v {
+  
+      function decodeAsUint(offset) -> value {
         let pos := add(4, mul(offset, 0x20))
         if lt(calldatasize(), add(pos, 0x20)) {
-          revertError(INVALID_PARAMS_ERROR())
+          revert(0x00, 0x00)
         }
-        v := calldataload(pos)
+        value := calldataload(pos)
       }
 
       /* RETURN STORAGE DATA */

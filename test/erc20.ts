@@ -5,7 +5,7 @@ import bytecode from '../build/ERC20/ERC20.bytecode.json';
 import { hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
 import { getLogs, providerCall, signerCall } from './utils/call';
 
-describe('YUL', async () => {
+describe('ERC20', async () => {
   let contractAddress: string;
   let user1: SignerWithAddress; 
   let user2: SignerWithAddress;

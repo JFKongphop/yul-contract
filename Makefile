@@ -13,6 +13,9 @@ ce2:
 ce7:
 	node compiler/solc.js ERC721
 
+ce1:
+	node compiler/solc.js ERC1155
+
 cpsd:
 	node compiler/solc.js Poseidon
 
@@ -21,3 +24,6 @@ te2:
 
 te7:
 	make ce7 && npx hardhat test test/erc721.ts
+
+te1:
+	make ce1 && npx hardhat test test/erc1155.ts
