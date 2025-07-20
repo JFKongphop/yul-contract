@@ -1,3 +1,4 @@
+import { split32Bytes } from './utils/splitData';
 import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
@@ -31,14 +32,24 @@ describe('ERC1155', async () => {
   });
 
   describe('Mint', async () => {
-    it('Should return mint', async () => {
-      await signerCall(user1, 'mint', [user1.address, 1, 1]);
-      const result = await providerCall('balanceOf', [user1.address, 1]);
+    it('Should return mint from user1', async () => {
+      const id = 1;
+      const value = 2;
+      await signerCall(user1, 'mint', [user1.address, id, value]);
+
+      const result = await providerCall('balanceOf', [user1.address, id]);
 
       const logs = await getLogs(TransferSingle);
+      const { data, topics } = logs[0];
 
+      const [nftId, nftValue] = split32Bytes(data);
+      const [_, to, from, __] = topics; 
 
-      console.log(logs)
+      expect(Number(nftId)).equal(id);
+      expect(Number(nftValue)).equal(value);
+      expect(Number(result)).equal(value);
+      expect(to).equal(zeroPadValue(user1.address));
+      expect(from).equal(zeroPadValue(contractAddress));
     });
   });
 });
