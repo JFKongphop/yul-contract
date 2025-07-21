@@ -20,9 +20,9 @@ object "ERC1155" {
       case 0x00fdd58e /* balanceOf(address,uint256) */ {
         let owner := decodeAsAddress(0)
         let id := decodeAsUint(1)
-        let balanceOf := getBalanceOf(owner, id, BALANCE_OF_MAPPING)
+        let userBalanceOf := balanceOf(owner, id, BALANCE_OF_MAPPING)
 
-        returnBytes32(balanceOf)
+        returnBytes32(userBalanceOf)
       }
 
       case 0x156e29f6 /* mint(address,uint256,uint256) */ {
@@ -40,25 +40,39 @@ object "ERC1155" {
       }
 
       /*******************************/
-      /***    INTERNAL FUNCTION    ***/
+      /*** READ INTERNAL FUNCTION  ***/
+      /*******************************/
+      
+      function balanceOf(owner, id, memory) -> b {
+        b := getNestedMapping(owner, id, memory)
+      }
+      
+      function isApprovedForAll(sender, operator, memory) -> approvalForAll {
+        approvalForAll := getNestedMapping(sender, operator, memory)
+      }
+
+      /*******************************/
+      /*** WRITE INTERNAL FUNCTION ***/
       /*******************************/
 
       function mint(to, id, value, memory) {
         zeroAddressChecker(to)
         
-        let currentBalance := getBalanceOf(to, id, memory)
+        let currentBalance := balanceOf(to, id, memory)
         let newBalance := add(currentBalance, value)
-        setNestedMapping(to, id, value, memory)
+        setBalanceOf(to, id, value, memory)
 
         emitTransferSingle(caller(), address(), to, id, value)
       }
 
-      function getBalanceOf(owner, id, memory) -> balanceOf {
-        balanceOf := getNestedMapping(owner, id, memory)
-      }
-
       function setBalanceOf(owner, id, tokenBalance, memory) {
         setNestedMapping(owner, id, tokenBalance, memory)
+      }
+
+      function setApprovalForAll(sender, operator, approved, memory) {
+        setNestedMapping(sender, operator, approved, memory)
+
+        emitApprovalForAll(sender, operator, approved)
       }
 
       /*******************************/
