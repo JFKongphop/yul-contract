@@ -34,8 +34,10 @@ describe('ERC1155', async () => {
   describe('Mint', async () => {
     it('Should return mint from user1', async () => {
       const id = 1;
-      const value = 2;
+      const value = 7;
       await signerCall(user1, 'mint', [user1.address, id, value]);
+      await signerCall(user2, 'mint', [user2.address, 2, 5]);
+      await signerCall(user2, 'mint', [user3.address, 3, 9]);
 
       const result = await providerCall('balanceOf', [user1.address, id]);
 
@@ -52,7 +54,50 @@ describe('ERC1155', async () => {
       expect(from).equal(zeroPadValue(contractAddress));
     });
   });
+  
+  // describe('CheckArray', async () => {
+  //   it('Check array number', async () => {
+  //     const iface = new ethers.Interface([`function checkArray(uint256[])`]);
+  //     const data = iface.encodeFunctionData('checkArray', [[1, 2, 3, 4]]);
+      
+  //     await user1.sendTransaction({
+  //       to: contractAddress,
+  //       data
+  //     });
+
+      // const logs = await getLogs('0x42484c4800ad9c5b0bcd5188937750874af815464f5bd016d70fc16700b53310');
+      // console.log(logs)
+  //   });
+  // });
+
+  describe('CheckArray', async () => {
+    it('Check array number', async () => {
+      const iface = new ethers.Interface([`function balanceOfBatch(address[], uint256[])`]);
+      const data = iface.encodeFunctionData(
+        'balanceOfBatch', 
+        [
+          [user1.address, user2.address, user3.address], 
+          [1, 2, 3]
+        ]
+      );
+
+      // console.log([user1.address, user2.address, user3.address])
+      
+      // await user1.sendTransaction({
+      //   to: contractAddress,
+      //   data
+      // });
+
+      // const logs = await getLogs('0x42484c4800ad9c5b0bcd5188937750874af815464f5bd016d70fc16700b53310');
+      // const a = logs[0].data
+      // console.log(split32Bytes(a))
+      
+      const result = await ethers.provider.call({
+        to: contractAddress,
+        data
+      });
+      console.log(split32Bytes(result))
+      console.log(result)
+    });
+  });
 });
-
-
-0xc0

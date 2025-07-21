@@ -13,6 +13,7 @@ object "ERC1155" {
       // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
       let IS_APPROVED_FOR_ALL := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
 
+
       let selector := shr(224, calldataload(0))
   
       switch selector
@@ -32,6 +33,53 @@ object "ERC1155" {
 
         mint(to, id, value, BALANCE_OF_MAPPING)
       }
+
+      case 0x4e1273f4 /* balanceOfBatch(address[], uint256[]) */ {
+        let owners := decodeAsUint(0)
+        let ids := decodeAsUint(1)
+
+        let ownerSize, ownerIndex := decodeAsArray(owners)
+        let idSize, idIndex := decodeAsArray(ids)
+
+        if iszero(eq(ownerSize, idSize)) {
+          // cast --format-bytes32-string "LENGTH_MISMATCH"
+          let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
+          revertError(error)
+        }
+
+        mstore(0x00, ownerSize)
+
+        let memoryIndex := 0x20
+        let ptr := 0x80
+
+        for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
+          let ownerData := calldataload(ownerIndex)
+          let idData := calldataload(idIndex)
+
+          let userBalanceOf := balanceOf(ownerData, idData, BALANCE_OF_MAPPING)
+
+          mstore(memoryIndex, userBalanceOf)
+          memoryIndex := add(memoryIndex, 0x20)
+
+          ownerIndex := add(ownerIndex, 0x20)
+          idIndex := add(idIndex, 0x20)
+        }
+
+        return(0x00, memoryIndex)
+      }
+
+
+
+      // case 0xb3e76a82 /* checkArray(uint256[]) */ {
+      //   let n := decodeAsUint(0)
+      //   let size, index := decodeAsArray(n)
+
+      //   for { let i := 0 } lt(i, size) { i := add(i, 1)} {
+      //     let event := 0x42484c4800ad9c5b0bcd5188937750874af815464f5bd016d70fc16700b53310
+      //     log2(0x00, 0x00, event, calldataload(index))
+      //     index := add(index, 0x20)
+      //   }
+      // }
 
       default {
         // cast --format-bytes32-string "INVALID FUNCTION"
@@ -93,19 +141,37 @@ object "ERC1155" {
         }
         value := calldataload(pos)
       }
+
+      function decodeAsArray(ptr) -> size, firstElementIndex {
+        size := calldataload(add(4, ptr))
+        if lt(calldatasize(), add(ptr, mul(size, 0x20))) {
+          revert(0x00, 0x00)
+        }
+        firstElementIndex := add(36, ptr)
+      }
       
       /*******************************/
       /*** MAPPING HELPER FUNCTION ***/
       /*******************************/
 
       function getNestedMapping(key1, key2, memory) -> value {
-        mstore(0x00, key1)
-        mstore(0x20, memory)
-        let slot1 := keccak256(0x00, 0x40)
+        let ptr := 0x80
 
-        mstore(0x00, key2)
-        mstore(0x20, slot1)
-        let slot2 := keccak256(0x00, 0x40)
+        mstore(ptr, key1)
+        mstore(add(ptr, 0x20), memory)
+        let slot1 := keccak256(ptr, 0x40)
+
+        mstore(ptr, key2)
+        mstore(add(ptr, 0x20), slot1)
+        let slot2 := keccak256(ptr, 0x40)
+
+        // mstore(0x00, key1)
+        // mstore(0x20, memory)
+        // let slot1 := keccak256(0x00, 0x40)
+
+        // mstore(0x00, key2)
+        // mstore(0x20, slot1)
+        // let slot2 := keccak256(0x00, 0x40)
 
         value := sload(slot2)
       }
