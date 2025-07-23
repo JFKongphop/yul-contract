@@ -38,48 +38,10 @@ object "ERC1155" {
         let owners := decodeAsUint(0)
         let ids := decodeAsUint(1)
 
-        let ownerSize, ownerIndex := decodeAsArray(owners)
-        let idSize, idIndex := decodeAsArray(ids)
+        let balanceMemorySize := balanceOfBatch(owners, ids, BALANCE_OF_MAPPING)
 
-        if iszero(eq(ownerSize, idSize)) {
-          // cast --format-bytes32-string "LENGTH_MISMATCH"
-          let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
-          revertError(error)
-        }
-
-        mstore(0x00, ownerSize)
-
-        let memoryIndex := 0x20
-        let ptr := 0x80
-
-        for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
-          let ownerData := calldataload(ownerIndex)
-          let idData := calldataload(idIndex)
-
-          let userBalanceOf := balanceOf(ownerData, idData, BALANCE_OF_MAPPING)
-
-          mstore(memoryIndex, userBalanceOf)
-          memoryIndex := add(memoryIndex, 0x20)
-
-          ownerIndex := add(ownerIndex, 0x20)
-          idIndex := add(idIndex, 0x20)
-        }
-
-        return(0x00, memoryIndex)
+        returnArray(balanceMemorySize)
       }
-
-
-
-      // case 0xb3e76a82 /* checkArray(uint256[]) */ {
-      //   let n := decodeAsUint(0)
-      //   let size, index := decodeAsArray(n)
-
-      //   for { let i := 0 } lt(i, size) { i := add(i, 1)} {
-      //     let event := 0x42484c4800ad9c5b0bcd5188937750874af815464f5bd016d70fc16700b53310
-      //     log2(0x00, 0x00, event, calldataload(index))
-      //     index := add(index, 0x20)
-      //   }
-      // }
 
       default {
         // cast --format-bytes32-string "INVALID FUNCTION"
@@ -93,6 +55,29 @@ object "ERC1155" {
       
       function balanceOf(owner, id, memory) -> b {
         b := getNestedMapping(owner, id, memory)
+      }
+
+      function balanceOfBatch(owners, ids, memory) -> balanceMemorySize {
+        let ownerSize, ownerIndex := decodeAsArray(owners)
+        let idSize, idIndex := decodeAsArray(ids)
+
+        lengthMismatchChecker(ownerSize, idSize)
+
+        let memoryIndex := 0x00
+        for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
+          let ownerData := calldataload(ownerIndex)
+          let idData := calldataload(idIndex)
+
+          let userBalanceOf := balanceOf(ownerData, idData, memory)
+
+          mstore(memoryIndex, userBalanceOf)
+          memoryIndex := add(memoryIndex, 0x20)
+
+          ownerIndex := add(ownerIndex, 0x20)
+          idIndex := add(idIndex, 0x20)
+        }
+
+        balanceMemorySize := memoryIndex
       }
       
       function isApprovedForAll(sender, operator, memory) -> approvalForAll {
@@ -165,14 +150,6 @@ object "ERC1155" {
         mstore(add(ptr, 0x20), slot1)
         let slot2 := keccak256(ptr, 0x40)
 
-        // mstore(0x00, key1)
-        // mstore(0x20, memory)
-        // let slot1 := keccak256(0x00, 0x40)
-
-        // mstore(0x00, key2)
-        // mstore(0x20, slot1)
-        // let slot2 := keccak256(0x00, 0x40)
-
         value := sload(slot2)
       }
 
@@ -193,6 +170,10 @@ object "ERC1155" {
         return(0x00, 0x20)
       }
 
+      function returnArray(arrayMemorySize) {
+        return(0x00, arrayMemorySize)
+      }
+
       function revertError(message) {
         mstore(0x00, message)
         revert(0x00, 0x20)
@@ -202,6 +183,14 @@ object "ERC1155" {
         if eq(account, 0x00) {
           // cast --format-bytes32-string "ZERO_ADDRESS"
           let error := 0x5a45524f5f414444524553530000000000000000000000000000000000000000
+          revertError(error)
+        }
+      }
+
+      function lengthMismatchChecker(lengthA, lengthB) {
+        if iszero(eq(lengthA, lengthB)) {
+          // cast --format-bytes32-string "LENGTH_MISMATCH"
+          let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
           revertError(error)
         }
       }

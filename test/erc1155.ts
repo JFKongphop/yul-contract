@@ -33,42 +33,33 @@ describe('ERC1155', async () => {
 
   describe('Mint', async () => {
     it('Should return mint from user1', async () => {
-      const id = 1;
-      const value = 7;
-      await signerCall(user1, 'mint', [user1.address, id, value]);
-      await signerCall(user2, 'mint', [user2.address, 2, 5]);
-      await signerCall(user2, 'mint', [user3.address, 3, 9]);
+      const users = [user1, user2, user3];
+      const ids = [1, 2, 3];
+      const values = [7, 5, 9];
 
-      const result = await providerCall('balanceOf', [user1.address, id]);
-
-      const logs = await getLogs(TransferSingle);
-      const { data, topics } = logs[0];
-
-      const [nftId, nftValue] = split32Bytes(data);
-      const [_, to, from, __] = topics; 
-
-      expect(Number(nftId)).equal(id);
-      expect(Number(nftValue)).equal(value);
-      expect(Number(result)).equal(value);
-      expect(to).equal(zeroPadValue(user1.address));
-      expect(from).equal(zeroPadValue(contractAddress));
-    });
-  });
+      for (let i = 0; i < 3; i++) {
+        const user = users[i];
+        const id = ids[i];
+        const value = values[i];
+        await signerCall(user, 'mint', [user.address, id, value]);
   
-  // describe('CheckArray', async () => {
-  //   it('Check array number', async () => {
-  //     const iface = new ethers.Interface([`function checkArray(uint256[])`]);
-  //     const data = iface.encodeFunctionData('checkArray', [[1, 2, 3, 4]]);
-      
-  //     await user1.sendTransaction({
-  //       to: contractAddress,
-  //       data
-  //     });
-
-      // const logs = await getLogs('0x42484c4800ad9c5b0bcd5188937750874af815464f5bd016d70fc16700b53310');
-      // console.log(logs)
-  //   });
-  // });
+        const result = await providerCall('balanceOf', [user.address, id]);
+  
+        const logs = await getLogs(TransferSingle);
+        const { data, topics } = logs[i];
+  
+        const [nftId, nftValue] = split32Bytes(data);
+        const [_, to, from, __] = topics; 
+  
+        expect(Number(nftId)).equal(id);
+        expect(Number(nftValue)).equal(value);
+        expect(Number(result)).equal(value);
+        expect(to).equal(zeroPadValue(user.address));
+        expect(from).equal(zeroPadValue(contractAddress));
+      }
+    });
+    
+  });
 
   describe('CheckArray', async () => {
     it('Check array number', async () => {
@@ -96,8 +87,8 @@ describe('ERC1155', async () => {
         to: contractAddress,
         data
       });
-      console.log(split32Bytes(result))
-      console.log(result)
+      console.log(split32Bytes(result).map((x) => Number(x)))
+
     });
   });
 });
