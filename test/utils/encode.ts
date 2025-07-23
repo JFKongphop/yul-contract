@@ -11,6 +11,10 @@ export const dataEncoder = (name: string, args?: any[]): string => {
     for (const arg of args) {
       if (ethers.isAddress(arg)) params.push('address');
       else if (arg === true || arg === false) params.push('bool');
+      else if (Array.isArray(arg)) {
+        if (ethers.isAddress(arg[0])) params.push('address[]');
+        else params.push('uint[]');
+      }
       else params.push('uint');
     }
   }
