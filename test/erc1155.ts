@@ -5,6 +5,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC1155/ERC1155.bytecode.json';
 import { dataEncoder, hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
 import { getLogs, providerCall, signerCall } from './utils/call';
+import { BytesLike } from 'ethers';
 
 describe('ERC1155', async () => {
   let contractAddress: string;
@@ -34,7 +35,7 @@ describe('ERC1155', async () => {
   });
 
   describe('Mint', async () => {
-    it('Should return mint from user1', async () => {
+    it('Should return mint from users', async () => {
       const users = [user1, user2, user3];
 
       for (let i = 0; i < 3; i++) {
@@ -58,7 +59,6 @@ describe('ERC1155', async () => {
         expect(from).equal(zeroPadValue(contractAddress));
       }
     });
-    
   });
 
   describe('BalanceOfBatch', async () => {
@@ -66,12 +66,32 @@ describe('ERC1155', async () => {
       const result = await providerCall('balanceOfBatch', [
         [user1.address, user2.address, user3.address], 
         [1, 2, 3]
-      ])
-      const balances = split32Bytes(result).map((x) => Number(x));
+      ]);
 
-      expect(balances).deep.equal(values);
+      const [length, ...elements] = split32Bytes(result);
+      const arrayElementBytes = '0x' + elements.join('');
+      const arrayElement = new ethers.AbiCoder().decode(
+        [`uint[${length}]`], 
+        arrayElementBytes
+      )[0];
+
+      expect(arrayElement).deep.equal(values)
     });
   });
 
-  
+  describe('BatchMint', async () => {
+    it('Should return batchMint from log', async () => {
+      await signerCall(user1, 'batchMint', [
+        user1.address,
+        [4, 5],
+        [1, 2]
+      ]);
+
+      const logs = await getLogs('0xb386278d67bb74372cade65baa71300b9b92aa70ac80cb27179fc883889a0005');
+
+      console.log(logs)
+    });
+  });
+
+
 });

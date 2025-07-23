@@ -32,15 +32,41 @@ object "ERC1155" {
         let value := decodeAsUint(2)
 
         mint(to, id, value, BALANCE_OF_MAPPING)
+        
+        emitTransferSingle(caller(), address(), to, id, value)
       }
 
-      case 0x4e1273f4 /* balanceOfBatch(address[], uint256[]) */ {
+      case 0x4e1273f4 /* balanceOfBatch(address[],uint256[]) */ {
         let owners := decodeAsUint(0)
         let ids := decodeAsUint(1)
 
         let balanceMemorySize := balanceOfBatch(owners, ids, BALANCE_OF_MAPPING)
 
         returnArray(balanceMemorySize)
+      }
+
+      case 0x0ca83480 /* batchMint(address,uint256[],uint256[]) */ {
+        let to := decodeAsAddress(0)
+        let ids := decodeAsUint(1)
+        let values := decodeAsUint(2)
+
+        let idSize, idIndex := decodeAsArray(ids)
+        let valueSize, valueIndex := decodeAsArray(values)
+      
+        zeroAddressChecker(to)
+        lengthMismatchChecker(idSize, valueSize)
+
+        for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
+          let idData := calldataload(idIndex)
+          let valueData := calldataload(valueIndex)
+
+          // log3(0x00, 0x00, 0xb386278d67bb74372cade65baa71300b9b92aa70ac80cb27179fc883889a0005, idData, valueData)
+
+          mint(to, idData, valueData, BALANCE_OF_MAPPING)
+
+          idIndex := add(idIndex, 0x20)
+          valueIndex := add(valueIndex, 0x20)
+        } 
       }
 
       default {
@@ -57,13 +83,15 @@ object "ERC1155" {
         b := getNestedMapping(owner, id, memory)
       }
 
+
       function balanceOfBatch(owners, ids, memory) -> balanceMemorySize {
         let ownerSize, ownerIndex := decodeAsArray(owners)
         let idSize, idIndex := decodeAsArray(ids)
 
         lengthMismatchChecker(ownerSize, idSize)
 
-        let memoryIndex := 0x00
+        mstore(0x00, idSize)
+        let memoryIndex := 0x20
         for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
           let ownerData := calldataload(ownerIndex)
           let idData := calldataload(idIndex)
@@ -94,8 +122,6 @@ object "ERC1155" {
         let currentBalance := balanceOf(to, id, memory)
         let newBalance := add(currentBalance, value)
         setBalanceOf(to, id, value, memory)
-
-        emitTransferSingle(caller(), address(), to, id, value)
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {
