@@ -13,7 +13,6 @@ object "ERC1155" {
       // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
       let IS_APPROVED_FOR_ALL := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
 
-
       let selector := shr(224, calldataload(0))
   
       switch selector
@@ -75,8 +74,9 @@ object "ERC1155" {
 
         lengthMismatchChecker(ownerSize, idSize)
 
-        mstore(0x00, idSize)
-        let memoryIndex := 0x20
+        mstore(0x00, 0x20)
+        mstore(0x20, idSize)
+        let memoryIndex := 0x40
         for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
           let ownerData := calldataload(ownerIndex)
           let idData := calldataload(idIndex)

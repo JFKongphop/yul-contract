@@ -68,14 +68,12 @@ describe('ERC1155', async () => {
         [1, 2, 3]
       ]);
 
-      const [length, ...elements] = split32Bytes(result);
-      const arrayElementBytes = '0x' + elements.join('');
-      const arrayElement = new ethers.AbiCoder().decode(
-        [`uint[${length}]`], 
-        arrayElementBytes
-      )[0];
+      const arrayElements = new ethers.AbiCoder().decode(
+        ['uint[]'],
+        result
+      )[0].map((x: BigInt) => Number(x));
 
-      expect(arrayElement).deep.equal(values)
+      expect(arrayElements).deep.equal(values)
     });
   });
 
@@ -94,41 +92,22 @@ describe('ERC1155', async () => {
         [user1.address, user1.address],
         ids
       ]);
-      
-      // const [length, ...elements] = split32Bytes(result);
-      // const arrayElementBytes = '0x' + elements.join('');
-      // const arrayElement = new ethers.AbiCoder().decode(
-      //   [`uint[${length}]`], 
-      //   arrayElementBytes
-      // )[0];
 
-      // const a = new ethers.AbiCoder().decode(
-      //   [`uint[]`], 
-      //   result
-      // )[0];
-
-
-      // console.log(a)
-
-
+      const arrayElements = new ethers.AbiCoder().decode(
+        ['uint[]'],
+        result
+      )[0].map((x: BigInt) => Number(x));
       
       const logs = await getLogs(TransferBatch);
+      const { data } = logs[0];
       const [idsFromLog, valueFromlog] = new ethers.AbiCoder().decode(
         ['uint[]', 'uint[]'], 
-        logs[0].data
+        data
       );
       
-      // expect(arrayElement).deep.equal(values);
+      expect(arrayElements).deep.equal(values);
       expect(idsFromLog).deep.equal(ids);
       expect(valueFromlog).deep.equal(values);
     });
-
-
-
-
-
-
   });
-
-
 });
