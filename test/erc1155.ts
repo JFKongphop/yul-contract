@@ -81,16 +81,53 @@ describe('ERC1155', async () => {
 
   describe('BatchMint', async () => {
     it('Should return batchMint from log', async () => {
+      const ids = [4, 5];
+      const values = [1, 2];
+      
       await signerCall(user1, 'batchMint', [
         user1.address,
-        [4, 5],
-        [1, 2]
+        ids,
+        values,
       ]);
+      
+      const result = await providerCall('balanceOfBatch', [
+        [user1.address, user1.address],
+        ids
+      ]);
+      
+      // const [length, ...elements] = split32Bytes(result);
+      // const arrayElementBytes = '0x' + elements.join('');
+      // const arrayElement = new ethers.AbiCoder().decode(
+      //   [`uint[${length}]`], 
+      //   arrayElementBytes
+      // )[0];
 
-      const logs = await getLogs('0xb386278d67bb74372cade65baa71300b9b92aa70ac80cb27179fc883889a0005');
+      // const a = new ethers.AbiCoder().decode(
+      //   [`uint[]`], 
+      //   result
+      // )[0];
 
-      console.log(logs)
+
+      // console.log(a)
+
+
+      
+      const logs = await getLogs(TransferBatch);
+      const [idsFromLog, valueFromlog] = new ethers.AbiCoder().decode(
+        ['uint[]', 'uint[]'], 
+        logs[0].data
+      );
+      
+      // expect(arrayElement).deep.equal(values);
+      expect(idsFromLog).deep.equal(ids);
+      expect(valueFromlog).deep.equal(values);
     });
+
+
+
+
+
+
   });
 
 

@@ -50,23 +50,9 @@ object "ERC1155" {
         let ids := decodeAsUint(1)
         let values := decodeAsUint(2)
 
-        let idSize, idIndex := decodeAsArray(ids)
-        let valueSize, valueIndex := decodeAsArray(values)
-      
-        zeroAddressChecker(to)
-        lengthMismatchChecker(idSize, valueSize)
+        let arrayMemorySize := batchMint(to, ids, values, BALANCE_OF_MAPPING)
 
-        for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
-          let idData := calldataload(idIndex)
-          let valueData := calldataload(valueIndex)
-
-          // log3(0x00, 0x00, 0xb386278d67bb74372cade65baa71300b9b92aa70ac80cb27179fc883889a0005, idData, valueData)
-
-          mint(to, idData, valueData, BALANCE_OF_MAPPING)
-
-          idIndex := add(idIndex, 0x20)
-          valueIndex := add(valueIndex, 0x20)
-        } 
+        emitTransferBatch(caller(), 0x00, to, arrayMemorySize)
       }
 
       default {
@@ -82,7 +68,6 @@ object "ERC1155" {
       function balanceOf(owner, id, memory) -> b {
         b := getNestedMapping(owner, id, memory)
       }
-
 
       function balanceOfBatch(owners, ids, memory) -> balanceMemorySize {
         let ownerSize, ownerIndex := decodeAsArray(owners)
@@ -122,6 +107,39 @@ object "ERC1155" {
         let currentBalance := balanceOf(to, id, memory)
         let newBalance := add(currentBalance, value)
         setBalanceOf(to, id, value, memory)
+      }
+
+      function batchMint(to, ids, values, memory) -> finalMemorySize {
+        let idSize, idIndex := decodeAsArray(ids)
+        let valueSize, valueIndex := decodeAsArray(values)
+      
+        zeroAddressChecker(to)
+        lengthMismatchChecker(idSize, valueSize)
+
+        finalMemorySize := mul(add(0x40, mul(idSize, 0x20)) ,2)
+        let firstArrayMemory := 0x40
+        let secondArrayMemory := add(0x40, add(mul(idSize, 0x20), 0x20)) 
+
+        mstore(0x00, firstArrayMemory)
+        mstore(0x20, secondArrayMemory)
+        mstore(firstArrayMemory, idSize)
+        mstore(secondArrayMemory, valueSize)
+        
+        for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
+          let idData := calldataload(idIndex)
+          let valueData := calldataload(valueIndex)
+          
+          firstArrayMemory := add(firstArrayMemory, 0x20)
+          secondArrayMemory := add(secondArrayMemory, 0x20)
+
+          mint(to, idData, valueData, memory)
+          
+          idIndex := add(idIndex, 0x20)
+          valueIndex := add(valueIndex, 0x20)
+          
+          mstore(firstArrayMemory, idData)
+          mstore(secondArrayMemory, valueData)
+        }
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {
@@ -166,7 +184,7 @@ object "ERC1155" {
       /*******************************/
 
       function getNestedMapping(key1, key2, memory) -> value {
-        let ptr := 0x80
+        let ptr := 0x1000
 
         mstore(ptr, key1)
         mstore(add(ptr, 0x20), memory)
@@ -180,13 +198,15 @@ object "ERC1155" {
       }
 
       function setNestedMapping(key1, key2, value, memory) {
-        mstore(0x00, key1)
-        mstore(0x20, memory)
-        let slot1 := keccak256(0x00, 0x40)
+        let ptr := 0x2000
+        
+        mstore(ptr, key1)
+        mstore(add(ptr, 0x20), memory)
+        let slot1 := keccak256(ptr, 0x40)
 
-        mstore(0x00, key2)
-        mstore(0x20, slot1)
-        let slot2 := keccak256(0x00, 0x40)
+        mstore(ptr, key2)
+        mstore(add(ptr, 0x20), slot1)
+        let slot2 := keccak256(ptr, 0x40)
 
         sstore(slot2, value)
       }
