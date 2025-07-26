@@ -1,5 +1,5 @@
 import { split32Bytes } from './utils/splitData';
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC1155/ERC1155.bytecode.json';
@@ -12,6 +12,7 @@ describe('ERC1155', async () => {
   let user1: SignerWithAddress; 
   let user2: SignerWithAddress;
   let user3: SignerWithAddress;
+  let user4: SignerWithAddress;
   const ids = [1, 2, 3];
   const values = [7, 5, 9];
 
@@ -20,7 +21,7 @@ describe('ERC1155', async () => {
   const ApprovalForAll = '0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31';
 
   before(async () => {    
-    [user1, user2, user3] = await ethers.getSigners();
+    [user1, user2, user3, user4] = await ethers.getSigners();
     const Contract = await ethers.getContractFactory([], bytecode);
     const contract = await Contract.deploy();
     contractAddress = await contract.getAddress();
@@ -129,6 +130,19 @@ describe('ERC1155', async () => {
       const result = await providerCall('isApprovedForAll', [user1.address, user1.address]);
       
       expect(Boolean(result)).true;
+    });
+  });
+
+  describe('SafeTranferFrom', async () => {
+    it('Should return safeTransferFrom', async () => {
+      const user1BalanceBeforeTransfer = await providerCall('balanceOf', [user1.address, 1]);
+      const user4BalanceBeforeTransfer = await providerCall('balanceOf', [user4.address, 1]);
+
+      await signerCall(user1, 'safeTransferFrom', [user1.address, user4.address, 1, 5]);
+
+      const user1BalanceAfterTransfer = await providerCall('balanceOf', [user1.address, 1]);
+      const user4BalanceAfterTransfer = await providerCall('balanceOf', [user4.address, 1]);
+
     });
   });
 });

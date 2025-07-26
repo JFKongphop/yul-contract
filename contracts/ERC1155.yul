@@ -7,7 +7,7 @@ object "ERC1155" {
     code {
       // owner => id => balance
       // cast keccak "mapping(address => mapping(uint256 => uint256)) public balanceOf"
-      let BALANCE_OF_MAPPING := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
+      let BALANCE_OF := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
 
       // owner => operator => approved
       // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
@@ -20,7 +20,7 @@ object "ERC1155" {
       case 0x00fdd58e /* balanceOf(address,uint256) */ {
         let owner := decodeAsAddress(0)
         let id := decodeAsUint(1)
-        let userBalanceOf := balanceOf(owner, id, BALANCE_OF_MAPPING)
+        let userBalanceOf := balanceOf(owner, id, BALANCE_OF)
 
         returnBytes32(userBalanceOf)
       }
@@ -30,7 +30,7 @@ object "ERC1155" {
         let id := decodeAsUint(1)
         let value := decodeAsUint(2)
 
-        mint(to, id, value, BALANCE_OF_MAPPING)
+        mint(to, id, value, BALANCE_OF)
         
         emitTransferSingle(caller(), address(), to, id, value)
       }
@@ -39,7 +39,7 @@ object "ERC1155" {
         let owners := decodeAsUint(0)
         let ids := decodeAsUint(1)
 
-        let balanceMemorySize := balanceOfBatch(owners, ids, BALANCE_OF_MAPPING)
+        let balanceMemorySize := balanceOfBatch(owners, ids, BALANCE_OF)
 
         returnArray(balanceMemorySize)
       }
@@ -49,7 +49,7 @@ object "ERC1155" {
         let ids := decodeAsUint(1)
         let values := decodeAsUint(2)
 
-        let arrayMemorySize := batchMint(to, ids, values, BALANCE_OF_MAPPING)
+        let arrayMemorySize := batchMint(to, ids, values, BALANCE_OF)
 
         emitTransferBatch(caller(), 0x00, to, arrayMemorySize)
       }
@@ -70,6 +70,17 @@ object "ERC1155" {
         let approvalForAll := isApprovedForAll(from, operator, IS_APPROVED_FOR_ALL)
 
         returnBytes32(approvalForAll)
+      }
+
+      case 0x0febdd49 /* safeTransferFrom(address,address,uint256,uint256) */ {
+        let from := decodeAsAddress(0)
+        let to := decodeAsAddress(1)
+        let id := decodeAsUint(2)
+        let value := decodeAsUint(3)
+
+        safeTransferFrom(from, to, id, value, IS_APPROVED_FOR_ALL, BALANCE_OF)
+
+        emitTransferSingle(caller(), from, to, id, value)
       }
 
       default {
@@ -158,6 +169,26 @@ object "ERC1155" {
           mstore(firstArrayMemory, idData)
           mstore(secondArrayMemory, valueData)
         }
+      }
+
+      function safeTransferFrom(from, to, id, value, approvedMemory, balanceMemory) {
+        let addressMismatch := eq(caller(), from)
+        let approved := isApprovedForAll(caller(), from, approvedMemory) 
+        let ownerCondition := eq(addressMismatch, approved)
+
+        // cast --format-bytes32-string "NOT_APPROVE"
+        let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
+        require(ownerCondition, error)
+
+        zeroAddressChecker(to)
+
+        let currentBalanceFrom := balanceOf(from, id, balanceMemory)
+        let newBalanceFrom := sub(currentBalanceFrom, value)
+        setBalanceOf(from, id, newBalanceFrom, balanceMemory)
+
+        let currentBalanceTo := balanceOf(to, id, balanceMemory)
+        let newBalanceTo := add(currentBalanceTo, value)
+        setBalanceOf(to, id, newBalanceTo, balanceMemory)
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {
@@ -253,6 +284,20 @@ object "ERC1155" {
         if iszero(eq(lengthA, lengthB)) {
           // cast --format-bytes32-string "LENGTH_MISMATCH"
           let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
+          revertError(error)
+        }
+      }
+
+      function addressMismatchChecker(addressA, addressB) {
+        if iszero(eq(addressA, addressB)) {
+          // cast --format-bytes32-string "NOT_APPROVE"
+          let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
+          revertError(error)
+        }
+      }
+
+      function require(condition, error) {
+        if iszero(condition) {
           revertError(error)
         }
       }
