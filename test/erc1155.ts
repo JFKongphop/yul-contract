@@ -1,5 +1,5 @@
 import { split32Bytes } from './utils/splitData';
-import { expect, use } from 'chai';
+import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC1155/ERC1155.bytecode.json';

@@ -54,6 +54,24 @@ object "ERC1155" {
         emitTransferBatch(caller(), 0x00, to, arrayMemorySize)
       }
 
+      case 0xa22cb465 /* setApprovalForAll(address,bool) */ {
+        let operator := decodeAsUint(0)
+        let approved := decodeAsUint(1)
+
+        setApprovalForAll(caller(), operator, approved, IS_APPROVED_FOR_ALL)
+
+        emitApprovalForAll(caller(), operator, approved)
+      }
+
+      case 0xe985e9c5 /* isApprovedForAll(address,address) */ {
+        let from := decodeAsAddress(0)
+        let operator := decodeAsAddress(1)
+
+        let approvalForAll := isApprovedForAll(from, operator, IS_APPROVED_FOR_ALL)
+
+        returnBytes32(approvalForAll)
+      }
+
       default {
         // cast --format-bytes32-string "INVALID FUNCTION"
         let error := 0x494e56414c49442046554e4354494f4e00000000000000000000000000000000
@@ -148,8 +166,6 @@ object "ERC1155" {
 
       function setApprovalForAll(sender, operator, approved, memory) {
         setNestedMapping(sender, operator, approved, memory)
-
-        emitApprovalForAll(sender, operator, approved)
       }
 
       /*******************************/
