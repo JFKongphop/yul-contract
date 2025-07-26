@@ -110,4 +110,25 @@ describe('ERC1155', async () => {
       expect(valueFromlog).deep.equal(values);
     });
   });
+
+  describe('IsApprovedForAll', async () => {
+    it('Should return setApprovalForAll in log', async () => {
+      await signerCall(user1, 'setApprovalForAll', [user1.address, true]);
+
+      const logs = await getLogs(ApprovalForAll);
+
+      const { data, topics } = logs[0];
+      const [_, from, operator] = topics;
+
+      expect(Boolean(data)).true;
+      expect(from).equal(zeroPadValue(user1.address));
+      expect(operator).equal(zeroPadValue(user1.address))
+    });
+
+    it('Should return isApprovedForAll is true', async () => {
+      const result = await providerCall('isApprovedForAll', [user1.address, user1.address]);
+      
+      expect(Boolean(result)).true;
+    });
+  });
 });
