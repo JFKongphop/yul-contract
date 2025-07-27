@@ -174,7 +174,7 @@ object "ERC1155" {
       function safeTransferFrom(from, to, id, value, approvedMemory, balanceMemory) {
         let addressMismatch := eq(caller(), from)
         let approved := isApprovedForAll(caller(), from, approvedMemory) 
-        let ownerCondition := eq(addressMismatch, approved)
+        let ownerCondition := or(addressMismatch, approved)
 
         // cast --format-bytes32-string "NOT_APPROVE"
         let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
@@ -290,8 +290,8 @@ object "ERC1155" {
 
       function addressMismatchChecker(addressA, addressB) {
         if iszero(eq(addressA, addressB)) {
-          // cast --format-bytes32-string "NOT_APPROVE"
-          let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
+          // cast --format-bytes32-string "ADDRESS_MISMATCH"
+          let error := 0x414444524553535f4d49534d4154434800000000000000000000000000000000
           revertError(error)
         }
       }

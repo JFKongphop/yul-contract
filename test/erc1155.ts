@@ -3,9 +3,10 @@ import { expect, use } from 'chai';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC1155/ERC1155.bytecode.json';
-import { dataEncoder, hexEncoder, keccakEncoder, zeroPadValue } from './utils/encode';
+import { dataEncoder, hexEncoder, keccakEncoder, zeroPadBytes, zeroPadValue } from './utils/encode';
 import { getLogs, providerCall, signerCall } from './utils/call';
 import { BytesLike } from 'ethers';
+import { hexDecoder } from './utils/decode';
 
 describe('ERC1155', async () => {
   let contractAddress: string;
@@ -134,15 +135,52 @@ describe('ERC1155', async () => {
   });
 
   describe('SafeTranferFrom', async () => {
+    const id = 1;
+    const value = 5;
+    
+    it('Should revert from and caller mismtach NOT_APPROVE', async () => {
+      const result = await signerCall(
+        user1, 
+        'safeTransferFrom', 
+        [user2.address, user4.address, id, value]
+      );
+
+      expect(result).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
+    });
+
+    it('Should revert zero address', async () => {
+      const result = await signerCall(
+        user1, 
+        'safeTransferFrom', 
+        [user1.address, ethers.ZeroAddress, id, value]
+      );
+
+      expect(result).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
     it('Should return safeTransferFrom', async () => {
-      const user1BalanceBeforeTransfer = await providerCall('balanceOf', [user1.address, 1]);
-      const user4BalanceBeforeTransfer = await providerCall('balanceOf', [user4.address, 1]);
+      const user1BalanceBeforeTransfer = await providerCall('balanceOf', [user1.address, id]);
+      const user4BalanceBeforeTransfer = await providerCall('balanceOf', [user4.address, id]);
 
-      await signerCall(user1, 'safeTransferFrom', [user1.address, user4.address, 1, 5]);
+      await signerCall(user1, 'safeTransferFrom', [user1.address, user4.address, id, value]);
 
-      const user1BalanceAfterTransfer = await providerCall('balanceOf', [user1.address, 1]);
-      const user4BalanceAfterTransfer = await providerCall('balanceOf', [user4.address, 1]);
+      const user1BalanceAfterTransfer = await providerCall('balanceOf', [user1.address, id]);
+      const user4BalanceAfterTransfer = await providerCall('balanceOf', [user4.address, id]);
 
+      const logs = await getLogs(TransferSingle);
+      const { data, topics } = logs[3];
+      const [idData, valueData] = split32Bytes(data);
+      const [,, from, to] = topics;
+
+      const sumBalanceBeforeTransfer = Number(user1BalanceBeforeTransfer) + Number(user4BalanceBeforeTransfer);
+      const sumBalanceAfterTransfer = Number(user1BalanceAfterTransfer) + Number(user4BalanceAfterTransfer);
+
+      expect(sumBalanceBeforeTransfer).equal(sumBalanceAfterTransfer);
+      expect(Number(user4BalanceAfterTransfer)).equal(value);
+      expect(Number(idData)).equal(id);
+      expect(Number(valueData)).equal(value);
+      expect(from).equal(zeroPadValue(user1.address));
+      expect(to).equal(zeroPadValue(user4.address));
     });
   });
 });

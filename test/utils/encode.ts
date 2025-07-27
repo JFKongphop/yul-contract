@@ -34,3 +34,7 @@ export const keccakEncoder = (name: string): string => {
 export const zeroPadValue = (value: string): string => {
   return ethers.zeroPadValue(value, 32);
 }
+
+export const zeroPadBytes = (value: string): string => {
+  return ethers.zeroPadBytes(value, 32);
+}
