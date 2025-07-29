@@ -289,27 +289,27 @@ object "ERC1155" {
       }
 
       function zeroAddressChecker(account) {
-        if eq(account, 0x00) {
-          // cast --format-bytes32-string "ZERO_ADDRESS"
-          let error := 0x5a45524f5f414444524553530000000000000000000000000000000000000000
-          revertError(error)
-        }
+        let zeroAddress := iszero(eq(account, 0x00))
+
+        // cast --format-bytes32-string "ZERO_ADDRESS"
+        let error := 0x5a45524f5f414444524553530000000000000000000000000000000000000000
+        require(zeroAddress, error)
       }
 
       function lengthMismatchChecker(lengthA, lengthB) {
-        if iszero(eq(lengthA, lengthB)) {
-          // cast --format-bytes32-string "LENGTH_MISMATCH"
-          let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
-          revertError(error)
-        }
+        let lengthMismatch := eq(lengthA, lengthB)
+
+        // cast --format-bytes32-string "LENGTH_MISMATCH"
+        let error := 0x4c454e4754485f4d49534d415443480000000000000000000000000000000000
+        require(lengthMismatch, error)
       }
 
       function addressMismatchChecker(addressA, addressB) {
-        if iszero(eq(addressA, addressB)) {
-          // cast --format-bytes32-string "ADDRESS_MISMATCH"
-          let error := 0x414444524553535f4d49534d4154434800000000000000000000000000000000
-          revertError(error)
-        }
+        let mismatchAddress := eq(addressA, addressB)
+
+        // cast --format-bytes32-string "ADDRESS_MISMATCH"
+        let error := 0x414444524553535f4d49534d4154434800000000000000000000000000000000
+        require(mismatchAddress, error)
       }
 
       function notApproveChecker(from, approvedMemory) {
