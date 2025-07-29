@@ -83,6 +83,29 @@ object "ERC1155" {
         emitTransferSingle(caller(), from, to, id, value)
       }
 
+      case 0xfba0ee64 /* safeBatchTransferFrom(address,address,uint256[],uint256[]) */ {
+        let from := decodeAsAddress(0)
+        let to := decodeAsAddress(1)
+        let ids := decodeAsUint(2)
+        let values := decodeAsUint(3)
+
+        let idSize, idIndex := decodeAsArray(ids)
+        let valueSize, valueIndex := decodeAsArray(values)
+
+        let addressMismatch := eq(caller(), from)
+        let approved := isApprovedForAll(caller(), from, IS_APPROVED_FOR_ALL) 
+        let ownerCondition := or(addressMismatch, approved)
+
+        // cast --format-bytes32-string "NOT_APPROVE"
+        let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
+        require(ownerCondition, error)
+
+        zeroAddressChecker(to)
+        lengthMismatchChecker(idSize, valueSize)
+
+
+      }
+
       default {
         // cast --format-bytes32-string "INVALID FUNCTION"
         let error := 0x494e56414c49442046554e4354494f4e00000000000000000000000000000000
@@ -172,14 +195,7 @@ object "ERC1155" {
       }
 
       function safeTransferFrom(from, to, id, value, approvedMemory, balanceMemory) {
-        let addressMismatch := eq(caller(), from)
-        let approved := isApprovedForAll(caller(), from, approvedMemory) 
-        let ownerCondition := or(addressMismatch, approved)
-
-        // cast --format-bytes32-string "NOT_APPROVE"
-        let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
-        require(ownerCondition, error)
-
+        notApproveChecker(from, approvedMemory)
         zeroAddressChecker(to)
 
         let currentBalanceFrom := balanceOf(from, id, balanceMemory)
@@ -294,6 +310,16 @@ object "ERC1155" {
           let error := 0x414444524553535f4d49534d4154434800000000000000000000000000000000
           revertError(error)
         }
+      }
+
+      function notApproveChecker(from, approvedMemory) {
+        let addressMismatch := eq(caller(), from)
+        let approved := isApprovedForAll(caller(), from, approvedMemory) 
+        let ownerCondition := or(addressMismatch, approved)
+
+        // cast --format-bytes32-string "NOT_APPROVE"
+        let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
+        require(ownerCondition, error)
       }
 
       function require(condition, error) {
