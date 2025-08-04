@@ -6,6 +6,7 @@ import bytecode from '../build/ERC1155/ERC1155.bytecode.json';
 import { dataEncoder, hexEncoder, keccakEncoder, zeroPadBytes, zeroPadValue } from './utils/encode';
 import { getLogs, providerCall, signerCall } from './utils/call';
 import { singleByteArrayDecode, hexDecoder, doubleByteArrayDecode } from './utils/decode';
+import { ZeroAddress } from 'ethers';
 
 describe('ERC1155', async () => {
   let contractAddress: string;
@@ -192,6 +193,41 @@ describe('ERC1155', async () => {
         ids
       ]
     );
+
+    it('Should revert from and caller mismtach NOT_APPROVE', async () => {
+      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+        user2.address,
+        user5.address,
+        ids,
+        values
+      ]);
+
+      expect(result).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
+    });
+
+    it('Should revert ZERO_ADDRESS', async () => {
+      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+        user1.address,
+        ZeroAddress,
+        ids,
+        values
+      ]);
+
+      expect(result).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
+    it('Should revert LENGTH_MISMATCH', async () => {
+      const sliceIds = ids.slice(1);
+      
+      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+        user1.address,
+        user5.address,
+        sliceIds,
+        values
+      ]);
+
+      expect(result).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+    });
     
     it('Should return safe batch transfer from', async () => {
       const user1Addresses = Array.from({ length: 3 }).fill(user1.address);
