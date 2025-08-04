@@ -101,6 +101,16 @@ object "ERC1155" {
         emitTransferBatch(caller(), 0x00, to, finalMemorySize)
       }
 
+      case 0xf5298aca /* burn(address,uint256,uint256) */ {
+        let from := decodeAsAddress(0)
+        let id := decodeAsUint(1)
+        let value := decodeAsUint(2)
+
+        burn(from, id, value, BALANCE_OF)
+
+        emitTransferSingle(caller(), from, 0x00, id, value)
+      }
+
       default {
         // cast --format-bytes32-string "INVALID FUNCTION"
         let error := 0x494e56414c49442046554e4354494f4e00000000000000000000000000000000
@@ -242,6 +252,14 @@ object "ERC1155" {
           mstore(firstArrayMemory, idData)
           mstore(secondArrayMemory, valueData)
         }
+      }
+
+      function burn(from, id, value, balanceMemory) {
+        zeroAddressChecker(from)
+
+        let currentBalanceFrom := balanceOf(from, id, balanceMemory)
+        let newBalanceFrom := sub(currentBalanceFrom, value)
+        setBalanceOf(from, id, newBalanceFrom, balanceMemory)
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {
