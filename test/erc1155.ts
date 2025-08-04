@@ -5,8 +5,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import bytecode from '../build/ERC1155/ERC1155.bytecode.json';
 import { dataEncoder, hexEncoder, keccakEncoder, zeroPadBytes, zeroPadValue } from './utils/encode';
 import { getLogs, providerCall, signerCall } from './utils/call';
-import { BytesLike } from 'ethers';
-import { hexDecoder } from './utils/decode';
+import { singleByteArrayDecode, hexDecoder, doubleByteArrayDecode } from './utils/decode';
 
 describe('ERC1155', async () => {
   let contractAddress: string;
@@ -14,6 +13,7 @@ describe('ERC1155', async () => {
   let user2: SignerWithAddress;
   let user3: SignerWithAddress;
   let user4: SignerWithAddress;
+  let user5: SignerWithAddress;
   const ids = [1, 2, 3];
   const values = [7, 5, 9];
 
@@ -22,7 +22,7 @@ describe('ERC1155', async () => {
   const ApprovalForAll = '0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31';
 
   before(async () => {    
-    [user1, user2, user3, user4] = await ethers.getSigners();
+    [user1, user2, user3, user4, user5] = await ethers.getSigners();
     const Contract = await ethers.getContractFactory([], bytecode);
     const contract = await Contract.deploy();
     contractAddress = await contract.getAddress();
@@ -102,10 +102,7 @@ describe('ERC1155', async () => {
       
       const logs = await getLogs(TransferBatch);
       const { data } = logs[0];
-      const [idsFromLog, valueFromlog] = new ethers.AbiCoder().decode(
-        ['uint[]', 'uint[]'], 
-        data
-      );
+      const [idsFromLog, valueFromlog] = doubleByteArrayDecode(data);
       
       expect(arrayElements).deep.equal(values);
       expect(idsFromLog).deep.equal(ids);
@@ -181,6 +178,54 @@ describe('ERC1155', async () => {
       expect(Number(valueData)).equal(value);
       expect(from).equal(zeroPadValue(user1.address));
       expect(to).equal(zeroPadValue(user4.address));
+    });
+  });
+
+  describe('SafeBatchTransferFrom', async () => {
+    const ids = [1, 4, 5];
+    const values = [1, 1, 1];
+
+    const callBalanceBatch = async (addresses: unknown[]) => await providerCall(
+      'balanceOfBatch',
+      [
+        addresses,
+        ids
+      ]
+    );
+    
+    it('Should return safe batch transfer from', async () => {
+      const user1Addresses = Array.from({ length: 3 }).fill(user1.address);
+      const user5Addresses = Array.from({ length: 3 }).fill(user5.address);
+
+      const user1BalancesBeforeTransfer = await callBalanceBatch(user1Addresses);
+      const balanceUser1BeforeElemets = singleByteArrayDecode(user1BalancesBeforeTransfer);
+
+      await signerCall(user1, 'safeBatchTransferFrom', [
+        user1.address,
+        user5.address,
+        ids,
+        values
+      ]);
+
+      const user1BalancesAfterTransfer = await callBalanceBatch(user1Addresses);
+      const user5BalancesAfterTransfer = await callBalanceBatch(user5Addresses);
+
+      const balanceUser1AfterElemets = singleByteArrayDecode(user1BalancesAfterTransfer);
+      const balanceUser5AfterElemets = singleByteArrayDecode(user5BalancesAfterTransfer);
+
+      const expectedUser1BalancesAfterTransfer = balanceUser1BeforeElemets.map(
+        (value, index) => value - values[index]
+      );
+
+      expect(balanceUser1AfterElemets).deep.equal(expectedUser1BalancesAfterTransfer);
+      expect(balanceUser5AfterElemets).deep.equal(values);      
+      
+      const logs = await getLogs(TransferBatch);
+      const { data } = logs[1];
+      const [idsFromLog, valueFromlog] = doubleByteArrayDecode(data);
+
+      expect(idsFromLog).deep.equal(ids);
+      expect(valueFromlog).deep.equal(values);
     });
   });
 });

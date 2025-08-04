@@ -89,21 +89,16 @@ object "ERC1155" {
         let ids := decodeAsUint(2)
         let values := decodeAsUint(3)
 
-        let idSize, idIndex := decodeAsArray(ids)
-        let valueSize, valueIndex := decodeAsArray(values)
+        let finalMemorySize := safeBatchTransferFrom(
+          from, 
+          to, 
+          ids, 
+          values, 
+          IS_APPROVED_FOR_ALL, 
+          BALANCE_OF
+        )
 
-        let addressMismatch := eq(caller(), from)
-        let approved := isApprovedForAll(caller(), from, IS_APPROVED_FOR_ALL) 
-        let ownerCondition := or(addressMismatch, approved)
-
-        // cast --format-bytes32-string "NOT_APPROVE"
-        let error := 0x4e4f545f415050524f5645000000000000000000000000000000000000000000
-        require(ownerCondition, error)
-
-        zeroAddressChecker(to)
-        lengthMismatchChecker(idSize, valueSize)
-
-
+        emitTransferBatch(caller(), 0x00, to, finalMemorySize)
       }
 
       default {
@@ -205,6 +200,48 @@ object "ERC1155" {
         let currentBalanceTo := balanceOf(to, id, balanceMemory)
         let newBalanceTo := add(currentBalanceTo, value)
         setBalanceOf(to, id, newBalanceTo, balanceMemory)
+      }
+
+      function safeBatchTransferFrom(from, to, ids, values, approvedMemory, balanceMemory) -> finalMemorySize {
+        let idSize, idIndex := decodeAsArray(ids)
+        let valueSize, valueIndex := decodeAsArray(values)
+
+        notApproveChecker(from, approvedMemory)
+        zeroAddressChecker(to)
+        lengthMismatchChecker(idSize, valueSize)
+
+        finalMemorySize := mul(add(0x40, mul(idSize, 0x20)) ,2)
+        let firstArrayMemory := 0x40
+        let secondArrayMemory := add(0x40, add(mul(idSize, 0x20), 0x20)) 
+
+        mstore(0x00, firstArrayMemory)
+        mstore(0x20, secondArrayMemory)
+        mstore(firstArrayMemory, idSize)
+        mstore(secondArrayMemory, valueSize)
+
+        for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
+          let idData := calldataload(idIndex)
+          let valueData := calldataload(valueIndex)
+
+          firstArrayMemory := add(firstArrayMemory, 0x20)
+          secondArrayMemory := add(secondArrayMemory, 0x20)
+          
+          let currentBalanceFrom := balanceOf(from, idData, balanceMemory)
+          let newBalanceFrom := sub(currentBalanceFrom, valueData)
+          setBalanceOf(from, idData, newBalanceFrom, balanceMemory)
+
+          let currentBalanceTo := balanceOf(to, idData, balanceMemory)
+          let newBalanceTo := add(currentBalanceTo, valueData)
+          setBalanceOf(to, idData, newBalanceTo, balanceMemory)
+          
+          log3(0x00, 0x00, 0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658, newBalanceFrom, newBalanceTo)
+
+          idIndex := add(idIndex, 0x20)
+          valueIndex := add(valueIndex, 0x20)
+
+          mstore(firstArrayMemory, idData)
+          mstore(secondArrayMemory, valueData)
+        }
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {
