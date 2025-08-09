@@ -253,6 +253,8 @@ describe('ERC1155', async () => {
         (value, index) => value - values[index]
       );
 
+      console.log(balanceUser1AfterElemets)
+
       expect(balanceUser1AfterElemets).deep.equal(expectedUser1BalancesAfterTransfer);
       expect(balanceUser5AfterElemets).deep.equal(values);      
       
@@ -262,6 +264,34 @@ describe('ERC1155', async () => {
 
       expect(idsFromLog).deep.equal(ids);
       expect(valueFromlog).deep.equal(values);
+    });
+  });
+
+  describe('Burn', async () => {
+    const id = 1;
+    const value = 1;
+
+    it('Should revert ZERO_ADDRESS', async () => {
+      const error = await signerCall(user1, 'burn', [ZeroAddress, id, value]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
+    it('Should return burn from user1', async () => {
+      await signerCall(user1, 'burn', [user1.address, id, value]);
+      
+      const user1BalanceOfId1 = await providerCall('balanceOf', [user1.address, id]);
+
+      const logs = await getLogs(TransferSingle);
+      const { data, topics } = logs[4];
+      const [,owner, from,] = topics;
+
+      const [idData, valueData] = split32Bytes(data);
+
+      expect(Number(idData)).equal(id);
+      expect(Number(valueData)).equal(value);
+      expect(owner).equal(from);
+      expect(Number(user1BalanceOfId1)).equal(0);      
     });
   });
 });
