@@ -253,8 +253,6 @@ object "ERC1155" {
           let currentBalanceTo := balanceOf(to, idData, balanceMemory)
           let newBalanceTo := add(currentBalanceTo, valueData)
           setBalanceOf(to, idData, newBalanceTo, balanceMemory)
-          
-          log3(0x00, 0x00, 0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658, newBalanceFrom, newBalanceTo)
 
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)

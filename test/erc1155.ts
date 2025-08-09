@@ -48,6 +48,12 @@ describe('ERC1155', async () => {
   });
 
   describe('Mint', async () => {
+    it('Should revert ZERO_ADDRESS', async () => {
+      const error = await signerCall(user1, 'mint', [ZeroAddress, 1, 1]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
     it('Should return mint from users', async () => {
       const users = [user1, user2, user3];
 
@@ -75,10 +81,24 @@ describe('ERC1155', async () => {
   });
 
   describe('BalanceOfBatch', async () => {
+    const addresses = [user1.address, user2.address, user3.address];
+    const ids = [1, 2, 3];
+
+    it('Should revert LENGTH_MISMATCH', async () => {
+      const sliceIds = ids.slice(1);
+      
+      const error = await signerCall(user1, 'balanceOfBatch', [
+        addresses,
+        sliceIds.slice(1)
+      ]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+    });
+
     it('should return balanceOfBatch from user 1-3', async () => {
       const result = await providerCall('balanceOfBatch', [
-        [user1.address, user2.address, user3.address], 
-        [1, 2, 3]
+        addresses, 
+        ids
       ]);
 
       const arrayElements = new ethers.AbiCoder().decode(
@@ -91,10 +111,32 @@ describe('ERC1155', async () => {
   });
 
   describe('BatchMint', async () => {
-    it('Should return batchMint from log', async () => {
-      const ids = [4, 5];
-      const values = [1, 2];
+    const ids = [4, 5];
+    const values = [1, 2];
+
+    it('Should revert ZERO_ADDRESS', async () => {
+      const error = await signerCall(user1, 'batchMint', [
+        ZeroAddress,
+        ids,
+        values
+      ]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
+    it('Should revert LENGTH_MISMATCH', async () => {
+      const sliceIds = ids.slice(1);
       
+      const error = await signerCall(user1, 'batchMint', [
+        user1.address,
+        sliceIds,
+        values
+      ]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+    });
+
+    it('Should return batchMint from user 1', async () => {
       await signerCall(user1, 'batchMint', [
         user1.address,
         ids,
@@ -196,14 +238,6 @@ describe('ERC1155', async () => {
     const ids = [1, 4, 5];
     const values = [1, 1, 1];
 
-    const callBalanceBatch = async (addresses: unknown[]) => await providerCall(
-      'balanceOfBatch',
-      [
-        addresses,
-        ids
-      ]
-    );
-
     it('Should revert from and caller mismtach NOT_APPROVE', async () => {
       const error = await signerCall(user1, 'safeBatchTransferFrom', [
         user2.address,
@@ -243,7 +277,7 @@ describe('ERC1155', async () => {
       const user1Addresses = Array.from({ length: 3 }).fill(user1.address);
       const user5Addresses = Array.from({ length: 3 }).fill(user5.address);
 
-      const user1BalancesBeforeTransfer = await callBalanceBatch(user1Addresses);
+      const user1BalancesBeforeTransfer = await callBalanceBatch(user1Addresses, ids);
       const balanceUser1BeforeElemets = singleByteArrayDecode(user1BalancesBeforeTransfer);
 
       await signerCall(user1, 'safeBatchTransferFrom', [
@@ -253,8 +287,8 @@ describe('ERC1155', async () => {
         values
       ]);
 
-      const user1BalancesAfterTransfer = await callBalanceBatch(user1Addresses);
-      const user5BalancesAfterTransfer = await callBalanceBatch(user5Addresses);
+      const user1BalancesAfterTransfer = await callBalanceBatch(user1Addresses, ids);
+      const user5BalancesAfterTransfer = await callBalanceBatch(user5Addresses, ids);
 
       const balanceUser1AfterElemets = singleByteArrayDecode(user1BalancesAfterTransfer);
       const balanceUser5AfterElemets = singleByteArrayDecode(user5BalancesAfterTransfer);
