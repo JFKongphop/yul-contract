@@ -147,23 +147,23 @@ describe('ERC1155', async () => {
     const value = 5;
     
     it('Should revert from and caller mismtach NOT_APPROVE', async () => {
-      const result = await signerCall(
+      const error = await signerCall(
         user1, 
         'safeTransferFrom', 
         [user2.address, user4.address, id, value]
       );
 
-      expect(result).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
+      expect(error).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
     });
 
     it('Should revert zero address', async () => {
-      const result = await signerCall(
+      const error = await signerCall(
         user1, 
         'safeTransferFrom', 
         [user1.address, ethers.ZeroAddress, id, value]
       );
 
-      expect(result).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
     });
 
     it('Should return safeTransferFrom', async () => {
@@ -205,38 +205,38 @@ describe('ERC1155', async () => {
     );
 
     it('Should revert from and caller mismtach NOT_APPROVE', async () => {
-      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+      const error = await signerCall(user1, 'safeBatchTransferFrom', [
         user2.address,
         user5.address,
         ids,
         values
       ]);
 
-      expect(result).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
+      expect(error).equal(zeroPadBytes(hexEncoder('NOT_APPROVE')));
     });
 
     it('Should revert ZERO_ADDRESS', async () => {
-      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+      const error = await signerCall(user1, 'safeBatchTransferFrom', [
         user1.address,
         ZeroAddress,
         ids,
         values
       ]);
 
-      expect(result).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
     });
 
     it('Should revert LENGTH_MISMATCH', async () => {
       const sliceIds = ids.slice(1);
       
-      const result = await signerCall(user1, 'safeBatchTransferFrom', [
+      const error = await signerCall(user1, 'safeBatchTransferFrom', [
         user1.address,
         user5.address,
         sliceIds,
         values
       ]);
 
-      expect(result).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+      expect(error).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
     });
     
     it('Should return safe batch transfer from', async () => {
@@ -316,13 +316,13 @@ describe('ERC1155', async () => {
     it('Should revert LENGTH_MISMATCH', async () => {
       const sliceIds = ids.slice(1);
       
-      const result = await signerCall(user5, 'batchBurn', [
+      const error = await signerCall(user5, 'batchBurn', [
         user5.address,
         sliceIds,
         values
       ]);
 
-      expect(result).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+      expect(error).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
     });
 
     it('Should return batchBurn by user 5', async () => {
