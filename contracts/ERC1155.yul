@@ -12,10 +12,8 @@ object "ERC1155" {
       // owner => operator => approved
       // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
       let IS_APPROVED_FOR_ALL := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
-
-      let selector := shr(224, calldataload(0))
   
-      switch selector
+      switch getSelector()
 
       case 0x00fdd58e /* balanceOf(address,uint256) */ {
         let owner := decodeAsAddress(0)
@@ -384,6 +382,10 @@ object "ERC1155" {
       function revertError(message) {
         mstore(0x00, message)
         revert(0x00, 0x20)
+      }
+
+      function getSelector() -> selector {
+        selector := shr(0xe0, calldataload(0))
       }
 
       function zeroAddressChecker(account) {
