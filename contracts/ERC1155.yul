@@ -98,7 +98,7 @@ object "ERC1155" {
           BALANCE_OF
         )
 
-        emitTransferBatch(caller(), 0x00, to, finalMemorySize)
+        emitTransferBatch(caller(), from, to, finalMemorySize)
       }
 
       case 0xf5298aca /* burn(address,uint256,uint256) */ {
@@ -109,6 +109,16 @@ object "ERC1155" {
         burn(from, id, value, BALANCE_OF)
 
         emitTransferSingle(caller(), from, 0x00, id, value)
+      }
+
+      case 0xf6eb127a /* batchBurn(address,uint256[],uint256[]) */ {
+        let from := decodeAsAddress(0)
+        let ids := decodeAsUint(1)
+        let values := decodeAsUint(2)
+
+        let finalMemorySize := batchBurn(from, ids, values, BALANCE_OF)
+
+        emitTransferBatch(caller(), from, 0x00, finalMemorySize)
       }
 
       default {
@@ -260,6 +270,41 @@ object "ERC1155" {
         let currentBalanceFrom := balanceOf(from, id, balanceMemory)
         let newBalanceFrom := sub(currentBalanceFrom, value)
         setBalanceOf(from, id, newBalanceFrom, balanceMemory)
+      }
+
+      function batchBurn(from, ids, values, balanceMemory) -> finalMemorySize {
+        let idSize, idIndex := decodeAsArray(ids)
+        let valueSize, valueIndex := decodeAsArray(values)
+
+        zeroAddressChecker(from)
+        lengthMismatchChecker(idSize, valueSize)
+
+        finalMemorySize := mul(add(0x40, mul(idSize, 0x20)), 2)
+        let firstArrayMemory := 0x40
+        let secondArrayMemory := add(0x40, add(mul(idSize, 0x20), 0x20)) 
+
+        mstore(0x00, firstArrayMemory)
+        mstore(0x20, secondArrayMemory)
+        mstore(firstArrayMemory, idSize)
+        mstore(secondArrayMemory, valueSize)
+
+        for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
+          let idData := calldataload(idIndex)
+          let valueData := calldataload(valueIndex)
+
+          firstArrayMemory := add(firstArrayMemory, 0x20)
+          secondArrayMemory := add(secondArrayMemory, 0x20)
+          
+          let currentBalanceFrom := balanceOf(from, idData, balanceMemory)
+          let newBalanceFrom := sub(currentBalanceFrom, valueData)
+          setBalanceOf(from, idData, newBalanceFrom, balanceMemory)
+        
+          idIndex := add(idIndex, 0x20)
+          valueIndex := add(valueIndex, 0x20)
+
+          mstore(firstArrayMemory, idData)
+          mstore(secondArrayMemory, valueData)
+        }
       }
 
       function setBalanceOf(owner, id, tokenBalance, memory) {

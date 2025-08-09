@@ -8,6 +8,14 @@ import { getLogs, providerCall, signerCall } from './utils/call';
 import { singleByteArrayDecode, hexDecoder, doubleByteArrayDecode } from './utils/decode';
 import { ZeroAddress } from 'ethers';
 
+const callBalanceBatch = async (addresses: unknown[], ids: number[]) => await providerCall(
+  'balanceOfBatch',
+  [
+    addresses,
+    ids
+  ]
+);
+
 describe('ERC1155', async () => {
   let contractAddress: string;
   let user1: SignerWithAddress; 
@@ -21,6 +29,8 @@ describe('ERC1155', async () => {
   const TransferSingle = '0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62';
   const TransferBatch = '0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb';
   const ApprovalForAll = '0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31';
+
+
 
   before(async () => {    
     [user1, user2, user3, user4, user5] = await ethers.getSigners();
@@ -253,8 +263,6 @@ describe('ERC1155', async () => {
         (value, index) => value - values[index]
       );
 
-      console.log(balanceUser1AfterElemets)
-
       expect(balanceUser1AfterElemets).deep.equal(expectedUser1BalancesAfterTransfer);
       expect(balanceUser5AfterElemets).deep.equal(values);      
       
@@ -292,6 +300,57 @@ describe('ERC1155', async () => {
       expect(Number(valueData)).equal(value);
       expect(owner).equal(from);
       expect(Number(user1BalanceOfId1)).equal(0);      
+    });
+  });
+
+  describe('BatchBurn', async () => {
+    const ids = [1, 4, 5];
+    const values = [1, 1, 1];
+
+    it('Should revert ZERO_ADDRESS', async () => {
+      const error = await signerCall(user5, 'batchBurn', [ZeroAddress, ids, values]);
+
+      expect(error).equal(zeroPadBytes(hexEncoder('ZERO_ADDRESS')));
+    });
+
+    it('Should revert LENGTH_MISMATCH', async () => {
+      const sliceIds = ids.slice(1);
+      
+      const result = await signerCall(user5, 'batchBurn', [
+        user5.address,
+        sliceIds,
+        values
+      ]);
+
+      expect(result).equal(zeroPadBytes(hexEncoder('LENGTH_MISMATCH')));
+    });
+
+    it('Should return batchBurn by user 5', async () => {
+      const user5Addresses = Array.from({ length: 3 }).fill(user5.address);
+
+      const user5BalancesBeforeTransfer = await callBalanceBatch(user5Addresses, ids);
+      const balanceUser5BeforeElemets = singleByteArrayDecode(user5BalancesBeforeTransfer);
+
+      await signerCall(user5, 'batchBurn', [
+        user5.address,
+        ids,
+        values
+      ]);
+
+      const user5BalancesAfterTransfer = await callBalanceBatch(user5Addresses, ids);
+      const balanceUser5AfterElemets = singleByteArrayDecode(user5BalancesAfterTransfer);
+
+      const expectedUser5BalancesAfterTransfer = balanceUser5BeforeElemets.map(
+        (value, index) => value - values[index]
+      );
+
+      const logs = await getLogs(TransferBatch);
+      const { data } = logs[2];
+      const [idsFromLog, valueFromlog] = doubleByteArrayDecode(data);
+
+      expect(idsFromLog).deep.equal(ids);
+      expect(valueFromlog).deep.equal(values);
+      expect(balanceUser5AfterElemets).deep.equal(expectedUser5BalancesAfterTransfer);
     });
   });
 });
