@@ -3,10 +3,9 @@ object "ERC1155" {
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
 	}    
+  
   object "runtime" {
     code {
-      // owner => id => balance
-      // cast keccak "mapping(address => mapping(uint256 => uint256)) public balanceOf"
       let BALANCE_OF := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
 
       // owner => operator => approved
@@ -18,7 +17,7 @@ object "ERC1155" {
       case 0x00fdd58e /* balanceOf(address,uint256) */ {
         let owner := decodeAsAddress(0)
         let id := decodeAsUint(1)
-        let userBalanceOf := balanceOf(owner, id, BALANCE_OF)
+        let userBalanceOf := balanceOf(owner, id)
 
         returnBytes32(userBalanceOf)
       }
@@ -28,7 +27,7 @@ object "ERC1155" {
         let id := decodeAsUint(1)
         let value := decodeAsUint(2)
 
-        mint(to, id, value, BALANCE_OF)
+        mint(to, id, value)
         
         emitTransferSingle(caller(), address(), to, id, value)
       }
@@ -37,7 +36,7 @@ object "ERC1155" {
         let owners := decodeAsUint(0)
         let ids := decodeAsUint(1)
 
-        let balanceMemorySize := balanceOfBatch(owners, ids, BALANCE_OF)
+        let balanceMemorySize := balanceOfBatch(owners, ids)
 
         returnArray(balanceMemorySize)
       }
@@ -47,7 +46,7 @@ object "ERC1155" {
         let ids := decodeAsUint(1)
         let values := decodeAsUint(2)
 
-        let arrayMemorySize := batchMint(to, ids, values, BALANCE_OF)
+        let arrayMemorySize := batchMint(to, ids, values)
 
         emitTransferBatch(caller(), 0x00, to, arrayMemorySize)
       }
@@ -76,7 +75,7 @@ object "ERC1155" {
         let id := decodeAsUint(2)
         let value := decodeAsUint(3)
 
-        safeTransferFrom(from, to, id, value, IS_APPROVED_FOR_ALL, BALANCE_OF)
+        safeTransferFrom(from, to, id, value, IS_APPROVED_FOR_ALL)
 
         emitTransferSingle(caller(), from, to, id, value)
       }
@@ -92,8 +91,7 @@ object "ERC1155" {
           to, 
           ids, 
           values, 
-          IS_APPROVED_FOR_ALL, 
-          BALANCE_OF
+          IS_APPROVED_FOR_ALL
         )
 
         emitTransferBatch(caller(), from, to, finalMemorySize)
@@ -104,7 +102,7 @@ object "ERC1155" {
         let id := decodeAsUint(1)
         let value := decodeAsUint(2)
 
-        burn(from, id, value, BALANCE_OF)
+        burn(from, id, value)
 
         emitTransferSingle(caller(), from, 0x00, id, value)
       }
@@ -114,7 +112,7 @@ object "ERC1155" {
         let ids := decodeAsUint(1)
         let values := decodeAsUint(2)
 
-        let finalMemorySize := batchBurn(from, ids, values, BALANCE_OF)
+        let finalMemorySize := batchBurn(from, ids, values)
 
         emitTransferBatch(caller(), from, 0x00, finalMemorySize)
       }
@@ -126,14 +124,24 @@ object "ERC1155" {
       }
 
       /*******************************/
+      /***     MAPPING MEMORY      ***/
+      /*******************************/
+
+      function BALANCE_OF_MAPPING() -> memory {
+        // owner => id => balance
+        // cast keccak "mapping(address => mapping(uint256 => uint256)) public balanceOf"
+        memory := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
+      }
+
+      /*******************************/
       /*** READ INTERNAL FUNCTION  ***/
       /*******************************/
       
-      function balanceOf(owner, id, memory) -> b {
-        b := getNestedMapping(owner, id, memory)
+      function balanceOf(owner, id) -> b {
+        b := getNestedMapping(owner, id, BALANCE_OF_MAPPING())
       }
 
-      function balanceOfBatch(owners, ids, memory) -> balanceMemorySize {
+      function balanceOfBatch(owners, ids) -> balanceMemorySize {
         let ownerSize, ownerIndex := decodeAsArray(owners)
         let idSize, idIndex := decodeAsArray(ids)
 
@@ -146,7 +154,7 @@ object "ERC1155" {
           let ownerData := calldataload(ownerIndex)
           let idData := calldataload(idIndex)
 
-          let userBalanceOf := balanceOf(ownerData, idData, memory)
+          let userBalanceOf := balanceOf(ownerData, idData)
 
           mstore(memoryIndex, userBalanceOf)
           memoryIndex := add(memoryIndex, 0x20)
@@ -166,15 +174,15 @@ object "ERC1155" {
       /*** WRITE INTERNAL FUNCTION ***/
       /*******************************/
 
-      function mint(to, id, value, memory) {
+      function mint(to, id, value) {
         zeroAddressChecker(to)
         
-        let currentBalance := balanceOf(to, id, memory)
+        let currentBalance := balanceOf(to, id)
         let newBalance := add(currentBalance, value)
-        setBalanceOf(to, id, value, memory)
+        setBalanceOf(to, id, value)
       }
 
-      function batchMint(to, ids, values, memory) -> finalMemorySize {
+      function batchMint(to, ids, values) -> finalMemorySize {
         let idSize, idIndex := decodeAsArray(ids)
         let valueSize, valueIndex := decodeAsArray(values)
       
@@ -197,7 +205,7 @@ object "ERC1155" {
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
 
-          mint(to, idData, valueData, memory)
+          mint(to, idData, valueData)
           
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
@@ -207,20 +215,20 @@ object "ERC1155" {
         }
       }
 
-      function safeTransferFrom(from, to, id, value, approvedMemory, balanceMemory) {
+      function safeTransferFrom(from, to, id, value, approvedMemory) {
         notApproveChecker(from, approvedMemory)
         zeroAddressChecker(to)
 
-        let currentBalanceFrom := balanceOf(from, id, balanceMemory)
+        let currentBalanceFrom := balanceOf(from, id)
         let newBalanceFrom := sub(currentBalanceFrom, value)
-        setBalanceOf(from, id, newBalanceFrom, balanceMemory)
+        setBalanceOf(from, id, newBalanceFrom)
 
-        let currentBalanceTo := balanceOf(to, id, balanceMemory)
+        let currentBalanceTo := balanceOf(to, id)
         let newBalanceTo := add(currentBalanceTo, value)
-        setBalanceOf(to, id, newBalanceTo, balanceMemory)
+        setBalanceOf(to, id, newBalanceTo)
       }
 
-      function safeBatchTransferFrom(from, to, ids, values, approvedMemory, balanceMemory) -> finalMemorySize {
+      function safeBatchTransferFrom(from, to, ids, values, approvedMemory) -> finalMemorySize {
         let idSize, idIndex := decodeAsArray(ids)
         let valueSize, valueIndex := decodeAsArray(values)
 
@@ -244,13 +252,13 @@ object "ERC1155" {
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
           
-          let currentBalanceFrom := balanceOf(from, idData, balanceMemory)
+          let currentBalanceFrom := balanceOf(from, idData)
           let newBalanceFrom := sub(currentBalanceFrom, valueData)
-          setBalanceOf(from, idData, newBalanceFrom, balanceMemory)
+          setBalanceOf(from, idData, newBalanceFrom)
 
-          let currentBalanceTo := balanceOf(to, idData, balanceMemory)
+          let currentBalanceTo := balanceOf(to, idData)
           let newBalanceTo := add(currentBalanceTo, valueData)
-          setBalanceOf(to, idData, newBalanceTo, balanceMemory)
+          setBalanceOf(to, idData, newBalanceTo)
 
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
@@ -260,15 +268,15 @@ object "ERC1155" {
         }
       }
 
-      function burn(from, id, value, balanceMemory) {
+      function burn(from, id, value) {
         zeroAddressChecker(from)
 
-        let currentBalanceFrom := balanceOf(from, id, balanceMemory)
+        let currentBalanceFrom := balanceOf(from, id)
         let newBalanceFrom := sub(currentBalanceFrom, value)
-        setBalanceOf(from, id, newBalanceFrom, balanceMemory)
+        setBalanceOf(from, id, newBalanceFrom)
       }
 
-      function batchBurn(from, ids, values, balanceMemory) -> finalMemorySize {
+      function batchBurn(from, ids, values) -> finalMemorySize {
         let idSize, idIndex := decodeAsArray(ids)
         let valueSize, valueIndex := decodeAsArray(values)
 
@@ -291,9 +299,9 @@ object "ERC1155" {
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
           
-          let currentBalanceFrom := balanceOf(from, idData, balanceMemory)
+          let currentBalanceFrom := balanceOf(from, idData)
           let newBalanceFrom := sub(currentBalanceFrom, valueData)
-          setBalanceOf(from, idData, newBalanceFrom, balanceMemory)
+          setBalanceOf(from, idData, newBalanceFrom)
         
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
@@ -303,8 +311,8 @@ object "ERC1155" {
         }
       }
 
-      function setBalanceOf(owner, id, tokenBalance, memory) {
-        setNestedMapping(owner, id, tokenBalance, memory)
+      function setBalanceOf(owner, id, tokenBalance) {
+        setNestedMapping(owner, id, tokenBalance, BALANCE_OF_MAPPING())
       }
 
       function setApprovalForAll(sender, operator, approved, memory) {
