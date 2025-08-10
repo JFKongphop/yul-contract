@@ -5,11 +5,7 @@ object "ERC1155" {
 	}    
 
   object "runtime" {
-    code {
-      // owner => operator => approved
-      // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
-      let IS_APPROVED_FOR_ALL := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
-  
+    code {  
       switch getSelector()
 
       case 0x00fdd58e /* balanceOf(address,uint256) */ {
@@ -53,7 +49,7 @@ object "ERC1155" {
         let operator := decodeAsUint(0)
         let approved := decodeAsUint(1)
 
-        setApprovalForAll(caller(), operator, approved, IS_APPROVED_FOR_ALL)
+        setApprovalForAll(caller(), operator, approved)
 
         emitApprovalForAll(caller(), operator, approved)
       }
@@ -62,7 +58,7 @@ object "ERC1155" {
         let from := decodeAsAddress(0)
         let operator := decodeAsAddress(1)
 
-        let approvalForAll := isApprovedForAll(from, operator, IS_APPROVED_FOR_ALL)
+        let approvalForAll := isApprovedForAll(from, operator)
 
         returnBytes32(approvalForAll)
       }
@@ -73,7 +69,7 @@ object "ERC1155" {
         let id := decodeAsUint(2)
         let value := decodeAsUint(3)
 
-        safeTransferFrom(from, to, id, value, IS_APPROVED_FOR_ALL)
+        safeTransferFrom(from, to, id, value)
 
         emitTransferSingle(caller(), from, to, id, value)
       }
@@ -88,8 +84,7 @@ object "ERC1155" {
           from, 
           to, 
           ids, 
-          values, 
-          IS_APPROVED_FOR_ALL
+          values
         )
 
         emitTransferBatch(caller(), from, to, finalMemorySize)
@@ -131,6 +126,12 @@ object "ERC1155" {
         memory := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
       }
 
+      function IS_APPROVED_FOR_ALL_MAPPING() -> memory {
+        // owner => operator => approved
+        // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
+        memory := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
+      }
+
       /*******************************/
       /*** READ INTERNAL FUNCTION  ***/
       /*******************************/
@@ -164,8 +165,8 @@ object "ERC1155" {
         balanceMemorySize := memoryIndex
       }
       
-      function isApprovedForAll(sender, operator, memory) -> approvalForAll {
-        approvalForAll := getNestedMapping(sender, operator, memory)
+      function isApprovedForAll(sender, operator) -> approvalForAll {
+        approvalForAll := getNestedMapping(sender, operator, IS_APPROVED_FOR_ALL_MAPPING())
       }
 
       /*******************************/
@@ -213,8 +214,8 @@ object "ERC1155" {
         }
       }
 
-      function safeTransferFrom(from, to, id, value, approvedMemory) {
-        notApproveChecker(from, approvedMemory)
+      function safeTransferFrom(from, to, id, value) {
+        notApproveChecker(from)
         zeroAddressChecker(to)
 
         let currentBalanceFrom := balanceOf(from, id)
@@ -226,11 +227,11 @@ object "ERC1155" {
         setBalanceOf(to, id, newBalanceTo)
       }
 
-      function safeBatchTransferFrom(from, to, ids, values, approvedMemory) -> finalMemorySize {
+      function safeBatchTransferFrom(from, to, ids, values) -> finalMemorySize {
         let idSize, idIndex := decodeAsArray(ids)
         let valueSize, valueIndex := decodeAsArray(values)
 
-        notApproveChecker(from, approvedMemory)
+        notApproveChecker(from)
         zeroAddressChecker(to)
         lengthMismatchChecker(idSize, valueSize)
 
@@ -311,8 +312,8 @@ object "ERC1155" {
         setNestedMapping(owner, id, tokenBalance, BALANCE_OF_MAPPING())
       }
 
-      function setApprovalForAll(sender, operator, approved, memory) {
-        setNestedMapping(sender, operator, approved, memory)
+      function setApprovalForAll(sender, operator, approved) {
+        setNestedMapping(sender, operator, approved, IS_APPROVED_FOR_ALL_MAPPING())
       }
 
       /*******************************/
@@ -416,9 +417,9 @@ object "ERC1155" {
         require(mismatchAddress, error)
       }
 
-      function notApproveChecker(from, approvedMemory) {
+      function notApproveChecker(from) {
         let addressMismatch := eq(caller(), from)
-        let approved := isApprovedForAll(caller(), from, approvedMemory) 
+        let approved := isApprovedForAll(caller(), from) 
         let ownerCondition := or(addressMismatch, approved)
 
         // cast --format-bytes32-string "NOT_APPROVE"
