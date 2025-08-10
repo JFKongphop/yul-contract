@@ -149,10 +149,10 @@ object "ERC1155" {
         mstore(0x20, idSize)
         let memoryIndex := 0x40
         for { let i := 0 } lt(i, ownerSize) { i := add(i, 1) } {
-          let ownerData := calldataload(ownerIndex)
-          let idData := calldataload(idIndex)
+          let owner := calldataload(ownerIndex)
+          let id := calldataload(idIndex)
 
-          let userBalanceOf := balanceOf(ownerData, idData)
+          let userBalanceOf := balanceOf(owner, id)
 
           mstore(memoryIndex, userBalanceOf)
           memoryIndex := add(memoryIndex, 0x20)
@@ -197,19 +197,19 @@ object "ERC1155" {
         mstore(secondArrayMemory, valueSize)
         
         for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
-          let idData := calldataload(idIndex)
-          let valueData := calldataload(valueIndex)
+          let id := calldataload(idIndex)
+          let value := calldataload(valueIndex)
           
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
 
-          mint(to, idData, valueData)
+          mint(to, id, value)
           
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
           
-          mstore(firstArrayMemory, idData)
-          mstore(secondArrayMemory, valueData)
+          mstore(firstArrayMemory, id)
+          mstore(secondArrayMemory, value)
         }
       }
 
@@ -244,25 +244,25 @@ object "ERC1155" {
         mstore(secondArrayMemory, valueSize)
 
         for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
-          let idData := calldataload(idIndex)
-          let valueData := calldataload(valueIndex)
+          let id := calldataload(idIndex)
+          let value := calldataload(valueIndex)
 
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
           
-          let currentBalanceFrom := balanceOf(from, idData)
-          let newBalanceFrom := sub(currentBalanceFrom, valueData)
-          setBalanceOf(from, idData, newBalanceFrom)
+          let currentBalanceFrom := balanceOf(from, id)
+          let newBalanceFrom := sub(currentBalanceFrom, value)
+          setBalanceOf(from, id, newBalanceFrom)
 
-          let currentBalanceTo := balanceOf(to, idData)
-          let newBalanceTo := add(currentBalanceTo, valueData)
-          setBalanceOf(to, idData, newBalanceTo)
+          let currentBalanceTo := balanceOf(to, id)
+          let newBalanceTo := add(currentBalanceTo, value)
+          setBalanceOf(to, id, newBalanceTo)
 
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
 
-          mstore(firstArrayMemory, idData)
-          mstore(secondArrayMemory, valueData)
+          mstore(firstArrayMemory, id)
+          mstore(secondArrayMemory, value)
         }
       }
 
@@ -291,19 +291,19 @@ object "ERC1155" {
         mstore(secondArrayMemory, valueSize)
 
         for { let i := 0 } lt(i, idSize) { i := add(i, 1) } {
-          let idData := calldataload(idIndex)
-          let valueData := calldataload(valueIndex)
+          let id := calldataload(idIndex)
+          let value := calldataload(valueIndex)
 
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
           
-          burn(from, idData, valueData)
+          burn(from, id, value)
         
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
 
-          mstore(firstArrayMemory, idData)
-          mstore(secondArrayMemory, valueData)
+          mstore(firstArrayMemory, id)
+          mstore(secondArrayMemory, value)
         }
       }
 
