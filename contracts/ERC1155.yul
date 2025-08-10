@@ -80,12 +80,7 @@ object "ERC1155" {
         let ids := decodeAsUint(2)
         let values := decodeAsUint(3)
 
-        let finalMemorySize := safeBatchTransferFrom(
-          from, 
-          to, 
-          ids, 
-          values
-        )
+        let finalMemorySize := safeBatchTransferFrom(from, to, ids, values)
 
         emitTransferBatch(caller(), from, to, finalMemorySize)
       }
