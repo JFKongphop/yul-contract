@@ -3,11 +3,9 @@ object "ERC1155" {
 		datacopy(0, dataoffset("runtime"), datasize("runtime"))
 		return(0, datasize("runtime"))
 	}    
-  
+
   object "runtime" {
     code {
-      let BALANCE_OF := 0x5a38e96a01c1d2f3c282045ff2beccf32b7e5111c10b76a1d8e4c50e8eecfcac
-
       // owner => operator => approved
       // cast keccak "mapping(address => mapping(address => bool)) public isApprovedForAll"
       let IS_APPROVED_FOR_ALL := 0xe3a0a1c41f8eca9fc64abbe69255a8a38b179452591c795d1dedf96d1d54bbf2
@@ -299,9 +297,7 @@ object "ERC1155" {
           firstArrayMemory := add(firstArrayMemory, 0x20)
           secondArrayMemory := add(secondArrayMemory, 0x20)
           
-          let currentBalanceFrom := balanceOf(from, idData)
-          let newBalanceFrom := sub(currentBalanceFrom, valueData)
-          setBalanceOf(from, idData, newBalanceFrom)
+          burn(from, idData, valueData)
         
           idIndex := add(idIndex, 0x20)
           valueIndex := add(valueIndex, 0x20)
