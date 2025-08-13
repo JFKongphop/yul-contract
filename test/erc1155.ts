@@ -101,10 +101,7 @@ describe('ERC1155', async () => {
         ids
       ]);
 
-      const arrayElements = new ethers.AbiCoder().decode(
-        ['uint[]'],
-        result
-      )[0].map((x: BigInt) => Number(x));
+      const arrayElements = singleByteArrayDecode(result);
 
       expect(arrayElements).deep.equal(values)
     });
@@ -148,10 +145,7 @@ describe('ERC1155', async () => {
         ids
       ]);
 
-      const arrayElements = new ethers.AbiCoder().decode(
-        ['uint[]'],
-        result
-      )[0].map((x: BigInt) => Number(x));
+      const arrayElements = singleByteArrayDecode(result);
       
       const logs = await getLogs(TransferBatch);
       const { data } = logs[0];
