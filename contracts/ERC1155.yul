@@ -389,11 +389,9 @@ object "ERC1155" {
       }
 
       function zeroAddressChecker(account) {
-        let zeroAddress := iszero(eq(account, 0x00))
-
         // cast --format-bytes32-string "ZERO_ADDRESS"
         let error := 0x5a45524f5f414444524553530000000000000000000000000000000000000000
-        require(zeroAddress, error)
+        require(account, error)
       }
 
       function lengthMismatchChecker(lengthA, lengthB) {
