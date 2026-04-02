@@ -2,7 +2,7 @@ call:
 	node shortcuts/call.js
 
 t:
-	make com && npx hardhat test test/test.ts 
+	npx hardhat test
 
 deploy:
 	npx hardhat run --network ${chain} scripts/deploy.ts
